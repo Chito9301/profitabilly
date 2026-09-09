@@ -2,12 +2,11 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { STATUSES } from "@/lib/customers/constants";
 
 export type CustomerFormState = {
   error?: string;
 };
-
-const STATUSES = ["Active", "Archived"] as const;
 
 function requiredField(formData: FormData, field: string): string | null {
   const value = formData.get(field);
@@ -97,14 +96,24 @@ export async function updateCustomer(
   // RLS blocks it regardless, but without this the query would just
   // silently match zero rows for someone else's customer instead of
   // making the ownership check explicit here too.
-  const { error } = await supabase
+  //
+  // .select().single() distinguishes "updated exactly one row" from
+  // "matched zero rows" (wrong id, or another user's customer — RLS
+  // already hides which, so both cases get the same safe message) —
+  // without it, Supabase reports no `error` for a zero-row update and
+  // the code would redirect as if it had succeeded.
+  const { data: updated, error } = await supabase
     .from("customers")
     .update({ name, ...customerFieldsFromForm(formData) })
     .eq("id", id)
-    .eq("user_id", user.id);
+    .eq("user_id", user.id)
+    .select("id")
+    .single();
 
-  if (error) {
-    return { error: "Could not update the customer. Please try again." };
+  if (error || !updated) {
+    return {
+      error: "Could not update the customer. It may not exist or you may not have access to it.",
+    };
   }
 
   redirect("/dashboard/customers?updated=1");
@@ -123,18 +132,22 @@ export async function deleteCustomer(
   if (!user) redirect("/login");
 
   // Scoped by id + user_id, same as updateCustomer above.
-  const { error } = await supabase
+  // .select().single() distinguishes "deleted exactly one row" from
+  // "matched zero rows" (wrong id, or another user's customer) or a
+  // real error — see the comment in updateCustomer above for why this
+  // matters (a zero-row delete reports no `error` on its own).
+  const { data: deleted, error } = await supabase
     .from("customers")
     .delete()
     .eq("id", id)
-    .eq("user_id", user.id);
+    .eq("user_id", user.id)
+    .select("id")
+    .single();
 
-  // A real DB error is reported rather than redirecting as if it
-  // succeeded. Matching zero rows (wrong id, or someone else's
-  // customer) is not itself an error — there's simply nothing this
-  // user was allowed to delete — so that case still redirects normally.
-  if (error) {
-    return { error: "Could not delete the customer. Please try again." };
+  if (error || !deleted) {
+    return {
+      error: "Could not delete the customer. It may not exist or you may not have access to it.",
+    };
   }
 
   redirect("/dashboard/customers?deleted=1");

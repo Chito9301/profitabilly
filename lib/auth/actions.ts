@@ -68,10 +68,14 @@ export async function signUp(
 
   // The handle_new_user trigger already created a bare profiles row
   // (id only) on signUp above — fill in the rest of what the form
-  // collected. This is best-effort: the auth account already exists at
-  // this point, so a failure here shouldn't strand the user without a
-  // way in. They can land on a mostly-empty profile and fix it later.
-  await supabase
+  // collected. The auth account and session already exist at this
+  // point (checked above), so we can't "undo" the signup on failure —
+  // but we also must not redirect to /dashboard as if the business
+  // details were saved when they weren't. Stopping short of the
+  // redirect and reusing the same message path as the email-
+  // confirmation case above keeps the failure visible without
+  // inventing new UI for it.
+  const { error: profileError } = await supabase
     .from("profiles")
     .update({
       full_name: fullName,
@@ -81,6 +85,13 @@ export async function signUp(
       currency,
     })
     .eq("id", data.user.id);
+
+  if (profileError) {
+    return {
+      message:
+        "Your account was created, but we couldn't save your business details. You're signed in — go to /dashboard to continue.",
+    };
+  }
 
   redirect("/dashboard");
 }

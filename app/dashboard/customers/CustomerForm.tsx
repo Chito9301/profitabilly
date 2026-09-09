@@ -6,9 +6,8 @@ import SelectField from "@/components/SelectField";
 import TextareaField from "@/components/TextareaField";
 import Button from "@/components/Button";
 import type { CustomerFormState } from "@/lib/customers/actions";
+import { STATUSES } from "@/lib/customers/constants";
 import type { Customer } from "@/types/supabase";
-
-const STATUSES = ["Active", "Archived"] as const;
 
 type CustomerFormProps = {
   action: (
