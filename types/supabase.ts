@@ -1,5 +1,7 @@
 /**
- * Hand-written to match supabase/migrations/20260909075059_create_profiles_and_customers.sql.
+ * Hand-written to match:
+ *   - supabase/migrations/20260909075059_create_profiles_and_customers.sql
+ *   - supabase/migrations/20260910165452_create_projects.sql
  *
  * Once the Supabase CLI is available, replace this file with the real
  * generated output so it never drifts from the schema:
@@ -83,6 +85,32 @@ export type Database = {
           created_at?: string;
         };
       };
+      projects: {
+        Row: {
+          id: string;
+          user_id: string;
+          customer_id: string;
+          name: string;
+          status: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          customer_id: string;
+          name: string;
+          status?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          customer_id?: string;
+          name?: string;
+          status?: string;
+          created_at?: string;
+        };
+      };
     };
   };
 };
@@ -91,3 +119,4 @@ export type Database = {
 // `const [customers, setCustomers] = useState<Customer[]>([])`.
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 export type Customer = Database["public"]["Tables"]["customers"]["Row"];
+export type Project = Database["public"]["Tables"]["projects"]["Row"];

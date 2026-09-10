@@ -14,9 +14,15 @@ construction, contractors, and other service businesses.
 - **Mini-Sprint 4** — Customers feature: list, create, edit, delete under
   `/dashboard/customers`, scoped to the authenticated user by both
   application code and RLS.
+- **Mini-Sprint 6** — Customers hardening: fixed silent success on
+  zero-row update/delete, unchecked profile-save error in signup,
+  duplicated status constants.
+- **Mini-Sprint 7** — Projects/Jobs foundation: `projects` table (1
+  customer → many projects), list/create/edit/delete under
+  `/dashboard/projects`, same per-user isolation pattern as Customers.
 
-Not implemented yet: projects, revenue, costs, dashboard metrics,
-reports, payments — later mini-sprints.
+Not implemented yet: revenue, costs, profit calculations, dashboard
+metrics, reports, payments — later mini-sprints.
 
 ## Stack
 
@@ -31,11 +37,13 @@ reports, payments — later mini-sprints.
 app/
   dashboard/
     customers/       Customers list, create, edit (protected)
+    projects/        Projects list, create, edit (protected)
   login/, signup/     Auth pages
 components/          Shared, reusable UI primitives
 lib/
   auth/              Auth server actions, error mapping
   customers/          Customer server actions
+  projects/          Project server actions
   supabase/          Supabase client factories (browser, server, middleware)
 public/              Static assets
 supabase/

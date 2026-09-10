@@ -38,6 +38,13 @@ export default async function DashboardPage() {
         Customers
       </Link>
 
+      <Link
+        href="/dashboard/projects"
+        className="mt-2 text-sm underline underline-offset-2"
+      >
+        Projects
+      </Link>
+
       <form action={logOut} className="mt-4">
         <Button type="submit" variant="secondary">
           Log out
