@@ -90,10 +90,15 @@ export async function updateRevenue(
 
   // .eq("user_id", user.id) scopes the write to rows this user owns —
   // RLS enforces this too, but this keeps the query's intent explicit.
+  // .eq("project_id", projectId) additionally scopes the write to this
+  // specific project: without it, a request could submit a valid
+  // revenue id from Project A together with a projectId for Project B
+  // (both owned by the same user) and still match the row, since id +
+  // user_id alone was already enough to find it.
   // .select("id").single() distinguishes an actual update (row
-  // returned) from zero rows matched (wrong id, or another user's
-  // revenue entry) or a real DB error; without it a zero-row update
-  // reports no `error` and would look like success.
+  // returned) from zero rows matched (wrong id, wrong project, or
+  // another user's revenue entry) or a real DB error; without it a
+  // zero-row update reports no `error` and would look like success.
   const { data: updated, error } = await supabase
     .from("revenues")
     .update({
@@ -103,6 +108,7 @@ export async function updateRevenue(
     })
     .eq("id", id)
     .eq("user_id", user.id)
+    .eq("project_id", projectId)
     .select("id")
     .single();
 
@@ -128,12 +134,15 @@ export async function deleteRevenue(
 
   if (!user) redirect("/login");
 
-  // Same zero-row reasoning as updateRevenue above.
+  // Same reasoning as updateRevenue above: scoped by id + user_id +
+  // project_id so a delete can't act on a record from a different
+  // project than the one declared, even if both belong to this user.
   const { data: deleted, error } = await supabase
     .from("revenues")
     .delete()
     .eq("id", id)
     .eq("user_id", user.id)
+    .eq("project_id", projectId)
     .select("id")
     .single();
 

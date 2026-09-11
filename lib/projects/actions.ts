@@ -147,7 +147,21 @@ export async function deleteProject(
     .select("id")
     .single();
 
-  if (error || !deleted) {
+  if (error) {
+    // 23503 = foreign_key_violation, a standard PostgreSQL SQLSTATE
+    // code — see the matching comment in lib/customers/actions.ts
+    // deleteCustomer. This project still has revenue or cost entries
+    // referencing it (revenues.project_id / costs.project_id are both
+    // ON DELETE RESTRICT), so the delete was correctly rejected.
+    if (error.code === "23503") {
+      return {
+        error: "Cannot delete this project because it has revenue or costs associated with it.",
+      };
+    }
+    return { error: "Could not delete the project. Please try again." };
+  }
+
+  if (!deleted) {
     return {
       error: "Could not delete the project. It may not exist or you may not have access to it.",
     };

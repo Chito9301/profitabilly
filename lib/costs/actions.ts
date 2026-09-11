@@ -108,6 +108,9 @@ export async function updateCost(
     return { error: "Please select a valid project." };
   }
 
+  // Scoped by id + user_id + project_id — see the matching comment in
+  // lib/revenue/actions.ts updateRevenue for why project_id is needed
+  // here too.
   const { data: updated, error } = await supabase
     .from("costs")
     .update({
@@ -118,6 +121,7 @@ export async function updateCost(
     })
     .eq("id", id)
     .eq("user_id", user.id)
+    .eq("project_id", projectId)
     .select("id")
     .single();
 
@@ -143,11 +147,15 @@ export async function deleteCost(
 
   if (!user) redirect("/login");
 
+  // Scoped by id + user_id + project_id — see the matching comment in
+  // lib/revenue/actions.ts deleteRevenue for why project_id is needed
+  // here too.
   const { data: deleted, error } = await supabase
     .from("costs")
     .delete()
     .eq("id", id)
     .eq("user_id", user.id)
+    .eq("project_id", projectId)
     .select("id")
     .single();
 

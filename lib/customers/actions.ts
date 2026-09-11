@@ -144,7 +144,21 @@ export async function deleteCustomer(
     .select("id")
     .single();
 
-  if (error || !deleted) {
+  if (error) {
+    // 23503 = foreign_key_violation, a standard PostgreSQL SQLSTATE
+    // code (not Supabase-specific free text) — reliable to check
+    // directly instead of matching on error.message. This customer
+    // still has projects referencing it (projects.customer_id is
+    // ON DELETE RESTRICT), so the delete was correctly rejected.
+    if (error.code === "23503") {
+      return {
+        error: "Cannot delete this customer because it has projects associated with it.",
+      };
+    }
+    return { error: "Could not delete the customer. Please try again." };
+  }
+
+  if (!deleted) {
     return {
       error: "Could not delete the customer. It may not exist or you may not have access to it.",
     };

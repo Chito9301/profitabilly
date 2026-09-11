@@ -61,24 +61,39 @@ types/               Shared TypeScript types
 
 ## Database schema
 
-Defined in `supabase/migrations/20260909075059_create_profiles_and_customers.sql`.
+Defined across three migrations in `supabase/migrations/`:
+`20260909075059_create_profiles_and_customers.sql`,
+`20260910165452_create_projects.sql`, and
+`20260911000458_create_revenue_and_costs.sql`.
 
 - **profiles** — one row per authenticated user, keyed by the same UUID
   as `auth.users.id`. A `handle_new_user` trigger inserts this row
   automatically on signup, so there's no client-side insert path.
 - **customers** — belongs to one profile via `user_id` (profiles 1 →
   many customers).
+- **projects** — belongs to one profile and one customer (customers 1 →
+  many projects). `customer_id` is `ON DELETE RESTRICT`, so a customer
+  with projects can't be deleted until they are.
+- **revenues** / **costs** — each belongs to one profile and one project
+  (projects 1 → many of each). `project_id` is also `ON DELETE
+  RESTRICT` for the same reason. Amounts are `numeric(12,2)`, never
+  floating point.
 
-Row Level Security is enabled on both tables. Every policy checks
-`auth.uid()` against the row's owner, so a user can only:
+Row Level Security is enabled on all five tables. Every policy checks
+`auth.uid()` against the row's owner (`user_id`, or `id` for profiles);
+`projects`/`revenues`/`costs` additionally require, at the RLS layer,
+that the referenced customer/project belongs to the same user:
 
 | Table     | select | insert | update | delete |
 |-----------|--------|--------|--------|--------|
 | profiles  | own row | — (trigger only) | own row | — |
 | customers | own rows | own rows | own rows | own rows |
+| projects  | own rows | own rows + customer must be own | own rows + customer must be own | own rows |
+| revenues  | own rows | own rows + project must be own | own rows + project must be own | own rows |
+| costs     | own rows | own rows + project must be own | own rows + project must be own | own rows |
 
-To apply the migration to a Supabase project: `npx supabase db push`
-(or run the SQL file directly in the Supabase SQL editor).
+To apply the migrations to a Supabase project: `npx supabase db push`
+(or run the SQL files directly in the Supabase SQL editor).
 
 ## Getting started
 
@@ -109,13 +124,16 @@ session cookie and protect `/dashboard/*` — not a second client
 implementation, just the standard pattern for middleware, which can't
 import `next/headers`.
 
-Auth (`lib/auth/actions.ts`) and customer CRUD (`lib/customers/actions.ts`)
-are both implemented as server actions that call `createClient()` from
-`lib/supabase/server.ts` and re-check `auth.getUser()` themselves —
-every customer query is scoped to the signed-in user's id, with Row
-Level Security as the final backstop.
+Auth (`lib/auth/actions.ts`), and CRUD for customers, projects, revenue,
+and costs (`lib/customers/`, `lib/projects/`, `lib/revenue/`,
+`lib/costs/`), are all implemented as server actions that call
+`createClient()` from `lib/supabase/server.ts` and re-check
+`auth.getUser()` themselves — every query is scoped to the signed-in
+user's id (and, for projects/revenue/costs, to the parent
+customer/project's owner too), with Row Level Security as the final
+backstop.
 
 ## What's intentionally not here yet
 
-The following are **not** implemented: projects, revenue, costs,
-dashboard metrics, payments, reports. These land in later mini-sprints.
+The following are **not** implemented: invoices, payments, dashboard
+metrics, reports. These land in later mini-sprints.
