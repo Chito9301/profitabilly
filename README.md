@@ -20,9 +20,13 @@ construction, contractors, and other service businesses.
 - **Mini-Sprint 7** — Projects/Jobs foundation: `projects` table (1
   customer → many projects), list/create/edit/delete under
   `/dashboard/projects`, same per-user isolation pattern as Customers.
+- **Mini-Sprint 8** — Revenue & Costs foundation: `revenues` and `costs`
+  tables (1 project → many of each), managed from the new
+  `/dashboard/projects/[id]` detail page, which also shows
+  Revenue/Cost totals and Profit for that project.
 
-Not implemented yet: revenue, costs, profit calculations, dashboard
-metrics, reports, payments — later mini-sprints.
+Not implemented yet: invoices, payments, dashboard metrics, reports —
+later mini-sprints.
 
 ## Stack
 
@@ -37,13 +41,17 @@ metrics, reports, payments — later mini-sprints.
 app/
   dashboard/
     customers/       Customers list, create, edit (protected)
-    projects/        Projects list, create, edit (protected)
+    projects/        Projects list, create, edit; [id]/ detail page
+                       with Revenue, Costs, Profit (protected)
   login/, signup/     Auth pages
 components/          Shared, reusable UI primitives
 lib/
   auth/              Auth server actions, error mapping
   customers/          Customer server actions
   projects/          Project server actions
+  revenue/           Revenue server actions
+  costs/             Cost server actions, category constants
+  finance/           Shared Revenue/Cost validation + money helpers
   supabase/          Supabase client factories (browser, server, middleware)
 public/              Static assets
 supabase/

@@ -1,0 +1,224 @@
+import Link from "next/link";
+import { redirect, notFound } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import Button from "@/components/Button";
+import DeleteRevenueButton from "./DeleteRevenueButton";
+import DeleteCostButton from "./DeleteCostButton";
+import { sumCents, formatCents } from "@/lib/finance/money";
+import type { Revenue, Cost } from "@/types/supabase";
+
+function formatDate(iso: string) {
+  return new Date(iso + "T00:00:00").toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+const SUCCESS_MESSAGES: Record<string, string> = {
+  revenueCreated: "Revenue added.",
+  revenueUpdated: "Revenue updated.",
+  revenueDeleted: "Revenue deleted.",
+  costCreated: "Cost added.",
+  costUpdated: "Cost updated.",
+  costDeleted: "Cost deleted.",
+};
+
+export default async function ProjectDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | undefined>>;
+}) {
+  const { id } = await params;
+  const searchParamsResolved = await searchParams;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  // Scoped to id + user_id: RLS already hides other users' rows, so a
+  // wrong id and someone else's project look identical here — both
+  // just come back empty, and both should render as "not found".
+  const { data: project } = await supabase
+    .from("projects")
+    .select("*")
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .single();
+
+  if (!project) notFound();
+
+  const { data: customer } = await supabase
+    .from("customers")
+    .select("name")
+    .eq("id", project.customer_id)
+    .eq("user_id", user.id)
+    .single();
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("currency")
+    .eq("id", user.id)
+    .single();
+  const currency = profile?.currency ?? "USD";
+
+  // Scoped by both project_id and user_id (redundant with RLS, same
+  // reasoning used throughout: keep the query's intent explicit).
+  const { data: revenues } = await supabase
+    .from("revenues")
+    .select("*")
+    .eq("project_id", id)
+    .eq("user_id", user.id)
+    .order("date", { ascending: false });
+
+  const { data: costs } = await supabase
+    .from("costs")
+    .select("*")
+    .eq("project_id", id)
+    .eq("user_id", user.id)
+    .order("date", { ascending: false });
+
+  const revenueRows: Revenue[] = revenues ?? [];
+  const costRows: Cost[] = costs ?? [];
+
+  const revenueCents = sumCents(revenueRows.map((r) => r.amount));
+  const costCents = sumCents(costRows.map((c) => c.amount));
+  const profitCents = revenueCents - costCents;
+
+  const successKey = Object.keys(SUCCESS_MESSAGES).find(
+    (key) => searchParamsResolved[key] !== undefined,
+  );
+  const successMessage = successKey ? SUCCESS_MESSAGES[successKey] : null;
+
+  return (
+    <main className="mx-auto max-w-4xl px-6 py-12">
+      <Link href="/dashboard/projects" className="text-sm text-muted underline underline-offset-2">
+        ← Projects
+      </Link>
+
+      <div className="mt-2">
+        <h1 className="text-2xl font-medium tracking-tight">{project.name}</h1>
+        {customer?.name && <p className="text-muted">{customer.name}</p>}
+      </div>
+
+      {successMessage && (
+        <p
+          role="status"
+          className="mt-6 rounded-md bg-profit/10 px-4 py-2 text-sm text-profit"
+        >
+          {successMessage}
+        </p>
+      )}
+
+      {/* Profit = Total Revenue - Total Costs, computed from exact
+          integer-cent totals (lib/finance/money.ts) — not from these
+          already-rounded display strings. */}
+      <div className="mt-6 grid grid-cols-3 gap-4 rounded-md border border-rule p-4 text-center">
+        <div>
+          <p className="text-xs text-muted">Revenue</p>
+          <p className="text-lg font-medium">
+            {currency} {formatCents(revenueCents)}
+          </p>
+        </div>
+        <div>
+          <p className="text-xs text-muted">Costs</p>
+          <p className="text-lg font-medium">
+            {currency} {formatCents(costCents)}
+          </p>
+        </div>
+        <div>
+          <p className="text-xs text-muted">Profit</p>
+          <p className="text-lg font-medium">
+            {currency} {formatCents(profitCents)}
+          </p>
+        </div>
+      </div>
+
+      {/* Revenue */}
+      <section className="mt-10">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-medium tracking-tight">Revenue</h2>
+          <Button href={`/dashboard/projects/${id}/revenue/new`} variant="primary">
+            Add Revenue
+          </Button>
+        </div>
+
+        {revenueRows.length === 0 ? (
+          <p className="text-sm text-muted">No revenue entries yet.</p>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {revenueRows.map((revenue) => (
+              <li
+                key={revenue.id}
+                className="flex items-center justify-between gap-3 rounded-md border border-rule p-3"
+              >
+                <div>
+                  <p className="text-sm">{revenue.description}</p>
+                  <p className="text-xs text-muted">{formatDate(revenue.date)}</p>
+                </div>
+                <div className="flex items-center gap-4">
+                  <p className="text-sm font-medium">
+                    {currency} {revenue.amount}
+                  </p>
+                  <Link
+                    href={`/dashboard/projects/${id}/revenue/${revenue.id}/edit`}
+                    className="text-sm underline underline-offset-2"
+                  >
+                    Edit
+                  </Link>
+                  <DeleteRevenueButton revenueId={revenue.id} projectId={id} />
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {/* Costs */}
+      <section className="mt-10">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-medium tracking-tight">Costs</h2>
+          <Button href={`/dashboard/projects/${id}/costs/new`} variant="primary">
+            Add Cost
+          </Button>
+        </div>
+
+        {costRows.length === 0 ? (
+          <p className="text-sm text-muted">No cost entries yet.</p>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {costRows.map((cost) => (
+              <li
+                key={cost.id}
+                className="flex items-center justify-between gap-3 rounded-md border border-rule p-3"
+              >
+                <div>
+                  <p className="text-sm">{cost.description}</p>
+                  <p className="text-xs text-muted">
+                    {cost.category} · {formatDate(cost.date)}
+                  </p>
+                </div>
+                <div className="flex items-center gap-4">
+                  <p className="text-sm font-medium">
+                    {currency} {cost.amount}
+                  </p>
+                  <Link
+                    href={`/dashboard/projects/${id}/costs/${cost.id}/edit`}
+                    className="text-sm underline underline-offset-2"
+                  >
+                    Edit
+                  </Link>
+                  <DeleteCostButton costId={cost.id} projectId={id} />
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </main>
+  );
+}

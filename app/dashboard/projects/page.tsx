@@ -113,7 +113,14 @@ export default async function ProjectsPage({
             <tbody>
               {rows.map((project) => (
                 <tr key={project.id} className="border-b border-rule/60">
-                  <td className="py-3 pr-4">{project.name}</td>
+                  <td className="py-3 pr-4">
+                    <Link
+                      href={`/dashboard/projects/${project.id}`}
+                      className="underline underline-offset-2"
+                    >
+                      {project.name}
+                    </Link>
+                  </td>
                   <td className="py-3 pr-4 text-muted">
                     {customerNameById.get(project.customer_id) ?? "—"}
                   </td>
@@ -141,7 +148,14 @@ export default async function ProjectsPage({
               <li key={project.id} className="rounded-md border border-rule p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="font-medium">{project.name}</p>
+                    <p className="font-medium">
+                      <Link
+                        href={`/dashboard/projects/${project.id}`}
+                        className="underline underline-offset-2"
+                      >
+                        {project.name}
+                      </Link>
+                    </p>
                     <p className="text-sm text-muted">
                       {customerNameById.get(project.customer_id) ?? "—"}
                     </p>

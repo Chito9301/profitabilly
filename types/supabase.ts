@@ -2,6 +2,7 @@
  * Hand-written to match:
  *   - supabase/migrations/20260909075059_create_profiles_and_customers.sql
  *   - supabase/migrations/20260910165452_create_projects.sql
+ *   - supabase/migrations/20260911000458_create_revenue_and_costs.sql
  *
  * Once the Supabase CLI is available, replace this file with the real
  * generated output so it never drifts from the schema:
@@ -111,6 +112,71 @@ export type Database = {
           created_at?: string;
         };
       };
+      revenues: {
+        Row: {
+          id: string;
+          user_id: string;
+          project_id: string;
+          description: string;
+          // numeric(12,2) — PostgREST returns Postgres `numeric` as a
+          // string (not a JS number) to avoid float precision loss, so
+          // this is typed as string throughout, never parsed to a
+          // number except for one-off sign/zero checks.
+          amount: string;
+          date: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          project_id: string;
+          description: string;
+          amount: string;
+          date: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          project_id?: string;
+          description?: string;
+          amount?: string;
+          date?: string;
+          created_at?: string;
+        };
+      };
+      costs: {
+        Row: {
+          id: string;
+          user_id: string;
+          project_id: string;
+          description: string;
+          amount: string;
+          category: string;
+          date: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          project_id: string;
+          description: string;
+          amount: string;
+          category: string;
+          date: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          project_id?: string;
+          description?: string;
+          amount?: string;
+          category?: string;
+          date?: string;
+          created_at?: string;
+        };
+      };
     };
   };
 };
@@ -120,3 +186,5 @@ export type Database = {
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 export type Customer = Database["public"]["Tables"]["customers"]["Row"];
 export type Project = Database["public"]["Tables"]["projects"]["Row"];
+export type Revenue = Database["public"]["Tables"]["revenues"]["Row"];
+export type Cost = Database["public"]["Tables"]["costs"]["Row"];
