@@ -8,6 +8,15 @@
  * generated output so it never drifts from the schema:
  *
  *   npx supabase gen types typescript --project-id <project-id> > types/supabase.ts
+ *
+ * Structural note: every table below includes `Relationships: []`, and
+ * `public` includes empty `Views`/`Functions`/`Enums`/`CompositeTypes`.
+ * These aren't schema data (this project has none of those, and no
+ * modeled FK relationships for embedded selects) — they're required so
+ * this type structurally satisfies @supabase/postgrest-js's
+ * GenericSchema/GenericTable shape. Without them, `.from(table)` can't
+ * resolve a table by key and every query's Row/Insert/Update resolves
+ * to `never` instead of the types below.
  */
 
 export type Database = {
@@ -47,6 +56,7 @@ export type Database = {
           timezone?: string | null;
           created_at?: string;
         };
+        Relationships: [];
       };
       customers: {
         Row: {
@@ -85,6 +95,7 @@ export type Database = {
           status?: string;
           created_at?: string;
         };
+        Relationships: [];
       };
       projects: {
         Row: {
@@ -111,6 +122,7 @@ export type Database = {
           status?: string;
           created_at?: string;
         };
+        Relationships: [];
       };
       revenues: {
         Row: {
@@ -144,6 +156,7 @@ export type Database = {
           date?: string;
           created_at?: string;
         };
+        Relationships: [];
       };
       costs: {
         Row: {
@@ -176,8 +189,13 @@ export type Database = {
           date?: string;
           created_at?: string;
         };
+        Relationships: [];
       };
     };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
+    Enums: Record<string, never>;
+    CompositeTypes: Record<string, never>;
   };
 };
 
