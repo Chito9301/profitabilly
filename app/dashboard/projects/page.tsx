@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import Button from "@/components/Button";
 import DeleteProjectButton from "./DeleteProjectButton";
+import { sumCents, formatCents, calculateMarginPercent, formatMarginPercent, profitToneClass } from "@/lib/finance/money";
 import type { Project } from "@/types/supabase";
 
 function StatusBadge({ status }: { status: string }) {
@@ -61,6 +62,53 @@ export default async function ProjectsPage({
     ),
   );
 
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("currency")
+    .eq("id", user.id)
+    .single();
+  const currency = profile?.currency ?? "USD";
+
+  // Scoped by user_id only (not by project_id) and grouped in memory —
+  // RLS on revenues/costs is auth.uid() = user_id, so this can never
+  // return another user's rows regardless of which project_id they
+  // belong to. Grouping locally avoids a per-project round trip and
+  // matches the customerNameById lookup pattern already used above.
+  const { data: revenues } = await supabase
+    .from("revenues")
+    .select("project_id, amount")
+    .eq("user_id", user.id);
+
+  const { data: costs } = await supabase
+    .from("costs")
+    .select("project_id, amount")
+    .eq("user_id", user.id);
+
+  const revenueAmountsByProject = new Map<string, string[]>();
+  for (const r of revenues ?? []) {
+    const list = revenueAmountsByProject.get(r.project_id) ?? [];
+    list.push(r.amount);
+    revenueAmountsByProject.set(r.project_id, list);
+  }
+
+  const costAmountsByProject = new Map<string, string[]>();
+  for (const c of costs ?? []) {
+    const list = costAmountsByProject.get(c.project_id) ?? [];
+    list.push(c.amount);
+    costAmountsByProject.set(c.project_id, list);
+  }
+
+  // A project with no revenue/cost rows simply has no entry in either
+  // map, so `.get(id) ?? []` below is an empty list — sumCents([]) is
+  // 0, not an error, so it can never produce an incorrect total.
+  function projectTotals(projectId: string) {
+    const revenueCents = sumCents(revenueAmountsByProject.get(projectId) ?? []);
+    const costCents = sumCents(costAmountsByProject.get(projectId) ?? []);
+    const profitCents = revenueCents - costCents;
+    const marginPercent = calculateMarginPercent(profitCents, revenueCents);
+    return { revenueCents, costCents, profitCents, marginPercent };
+  }
+
   const successKey = Object.keys(SUCCESS_MESSAGES).find(
     (key) => params[key] !== undefined,
   );
@@ -107,11 +155,18 @@ export default async function ProjectsPage({
                 <th className="py-2 pr-4 font-medium">Name</th>
                 <th className="py-2 pr-4 font-medium">Customer</th>
                 <th className="py-2 pr-4 font-medium">Status</th>
+                <th className="py-2 pr-4 font-medium">Revenue</th>
+                <th className="py-2 pr-4 font-medium">Costs</th>
+                <th className="py-2 pr-4 font-medium">Profit</th>
+                <th className="py-2 pr-4 font-medium">Margin</th>
                 <th className="py-2 font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {rows.map((project) => (
+              {rows.map((project) => {
+                const { revenueCents, costCents, profitCents, marginPercent } =
+                  projectTotals(project.id);
+                return (
                 <tr key={project.id} className="border-b border-rule/60">
                   <td className="py-3 pr-4">
                     <Link
@@ -127,6 +182,18 @@ export default async function ProjectsPage({
                   <td className="py-3 pr-4">
                     <StatusBadge status={project.status} />
                   </td>
+                  <td className="py-3 pr-4 text-muted">
+                    {currency} {formatCents(revenueCents)}
+                  </td>
+                  <td className="py-3 pr-4 text-muted">
+                    {currency} {formatCents(costCents)}
+                  </td>
+                  <td className={`py-3 pr-4 font-medium ${profitToneClass(profitCents)}`}>
+                    {currency} {formatCents(profitCents)}
+                  </td>
+                  <td className={`py-3 pr-4 font-medium ${profitToneClass(marginPercent)}`}>
+                    {formatMarginPercent(marginPercent)}
+                  </td>
                   <td className="py-3">
                     <div className="flex items-center gap-4">
                       <Link
@@ -139,12 +206,16 @@ export default async function ProjectsPage({
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
 
           <ul className="flex flex-col gap-3 md:hidden">
-            {rows.map((project) => (
+            {rows.map((project) => {
+              const { revenueCents, costCents, profitCents, marginPercent } =
+                projectTotals(project.id);
+              return (
               <li key={project.id} className="rounded-md border border-rule p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -163,6 +234,29 @@ export default async function ProjectsPage({
                   <StatusBadge status={project.status} />
                 </div>
 
+                <div className="mt-3 grid grid-cols-4 gap-2 text-center text-xs">
+                  <div>
+                    <p className="text-muted">Revenue</p>
+                    <p>{currency} {formatCents(revenueCents)}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted">Costs</p>
+                    <p>{currency} {formatCents(costCents)}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted">Profit</p>
+                    <p className={profitToneClass(profitCents)}>
+                      {currency} {formatCents(profitCents)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-muted">Margin</p>
+                    <p className={profitToneClass(marginPercent)}>
+                      {formatMarginPercent(marginPercent)}
+                    </p>
+                  </div>
+                </div>
+
                 <div className="mt-3 flex items-center gap-4">
                   <Link
                     href={`/dashboard/projects/${project.id}/edit`}
@@ -173,7 +267,8 @@ export default async function ProjectsPage({
                   <DeleteProjectButton projectId={project.id} />
                 </div>
               </li>
-            ))}
+              );
+            })}
           </ul>
         </>
       )}

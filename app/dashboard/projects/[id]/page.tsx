@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import Button from "@/components/Button";
 import DeleteRevenueButton from "./DeleteRevenueButton";
 import DeleteCostButton from "./DeleteCostButton";
-import { sumCents, formatCents } from "@/lib/finance/money";
+import { sumCents, formatCents, calculateMarginPercent, formatMarginPercent, profitToneClass } from "@/lib/finance/money";
 import type { Revenue, Cost } from "@/types/supabase";
 
 function formatDate(iso: string) {
@@ -88,6 +88,7 @@ export default async function ProjectDetailPage({
   const revenueCents = sumCents(revenueRows.map((r) => r.amount));
   const costCents = sumCents(costRows.map((c) => c.amount));
   const profitCents = revenueCents - costCents;
+  const marginPercent = calculateMarginPercent(profitCents, revenueCents);
 
   const successKey = Object.keys(SUCCESS_MESSAGES).find(
     (key) => searchParamsResolved[key] !== undefined,
@@ -114,10 +115,11 @@ export default async function ProjectDetailPage({
         </p>
       )}
 
-      {/* Profit = Total Revenue - Total Costs, computed from exact
-          integer-cent totals (lib/finance/money.ts) — not from these
-          already-rounded display strings. */}
-      <div className="mt-6 grid grid-cols-3 gap-4 rounded-md border border-rule p-4 text-center">
+      {/* Profit = Total Revenue - Total Costs, and Margin = Profit /
+          Revenue x 100, both computed from exact integer-cent totals
+          (lib/finance/money.ts) — not from these already-rounded
+          display strings. */}
+      <div className="mt-6 grid grid-cols-4 gap-4 rounded-md border border-rule p-4 text-center">
         <div>
           <p className="text-xs text-muted">Revenue</p>
           <p className="text-lg font-medium">
@@ -132,8 +134,14 @@ export default async function ProjectDetailPage({
         </div>
         <div>
           <p className="text-xs text-muted">Profit</p>
-          <p className="text-lg font-medium">
+          <p className={`text-lg font-medium ${profitToneClass(profitCents)}`}>
             {currency} {formatCents(profitCents)}
+          </p>
+        </div>
+        <div>
+          <p className="text-xs text-muted">Margin</p>
+          <p className={`text-lg font-medium ${profitToneClass(marginPercent)}`}>
+            {formatMarginPercent(marginPercent)}
           </p>
         </div>
       </div>
