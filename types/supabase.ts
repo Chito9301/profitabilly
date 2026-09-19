@@ -3,6 +3,8 @@
  *   - supabase/migrations/20260909075059_create_profiles_and_customers.sql
  *   - supabase/migrations/20260910165452_create_projects.sql
  *   - supabase/migrations/20260911000458_create_revenue_and_costs.sql
+ *   - supabase/migrations/20260917083615_create_estimated_revenue_and_costs.sql
+ *   - supabase/migrations/20260918012926_add_accepted_at_to_projects.sql
  *
  * Once the Supabase CLI is available, replace this file with the real
  * generated output so it never drifts from the schema:
@@ -104,6 +106,7 @@ export type Database = {
           customer_id: string;
           name: string;
           status: string;
+          accepted_at: string | null;
           created_at: string;
         };
         Insert: {
@@ -112,6 +115,7 @@ export type Database = {
           customer_id: string;
           name: string;
           status?: string;
+          accepted_at?: string | null;
           created_at?: string;
         };
         Update: {
@@ -120,6 +124,7 @@ export type Database = {
           customer_id?: string;
           name?: string;
           status?: string;
+          accepted_at?: string | null;
           created_at?: string;
         };
         Relationships: [];
@@ -191,6 +196,63 @@ export type Database = {
         };
         Relationships: [];
       };
+      estimated_revenues: {
+        Row: {
+          id: string;
+          user_id: string;
+          project_id: string;
+          description: string;
+          amount: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          project_id: string;
+          description: string;
+          amount: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          project_id?: string;
+          description?: string;
+          amount?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      estimated_costs: {
+        Row: {
+          id: string;
+          user_id: string;
+          project_id: string;
+          description: string;
+          amount: string;
+          category: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          project_id: string;
+          description: string;
+          amount: string;
+          category: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          project_id?: string;
+          description?: string;
+          amount?: string;
+          category?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -206,3 +268,5 @@ export type Customer = Database["public"]["Tables"]["customers"]["Row"];
 export type Project = Database["public"]["Tables"]["projects"]["Row"];
 export type Revenue = Database["public"]["Tables"]["revenues"]["Row"];
 export type Cost = Database["public"]["Tables"]["costs"]["Row"];
+export type EstimatedRevenue = Database["public"]["Tables"]["estimated_revenues"]["Row"];
+export type EstimatedCost = Database["public"]["Tables"]["estimated_costs"]["Row"];

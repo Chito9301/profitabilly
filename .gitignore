@@ -18,7 +18,3 @@ npm-debug.log*
 
 # typescript
 *.tsbuildinfo
-
-.vscode/
-
-.env

@@ -126,6 +126,43 @@ export async function updateProject(
   redirect("/dashboard/projects?updated=1");
 }
 
+// Explicit, one-way acceptance: separate from status (which already
+// defaults to "Active" automatically on creation — see
+// statusFromForm/insert above — so it can't represent a deliberate
+// decision) and separate from the general-purpose updateProject form,
+// since this isn't an edit of the project's fields, it's a single
+// specific fact recorded once. Never called automatically anywhere;
+// only ever triggered by the user clicking "Accept Project".
+export async function acceptProject(
+  id: string,
+  _prevState: ProjectFormState,
+  _formData: FormData,
+): Promise<ProjectFormState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) redirect("/login");
+
+  // Same zero-row reasoning as updateProject/deleteProject above.
+  const { data: updated, error } = await supabase
+    .from("projects")
+    .update({ accepted_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .select("id")
+    .single();
+
+  if (error || !updated) {
+    return {
+      error: "Could not accept the project. It may not exist or you may not have access to it.",
+    };
+  }
+
+  redirect(`/dashboard/projects/${id}?accepted=1`);
+}
+
 export async function deleteProject(
   id: string,
   _prevState: ProjectFormState,

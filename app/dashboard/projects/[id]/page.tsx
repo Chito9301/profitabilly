@@ -4,8 +4,11 @@ import { createClient } from "@/lib/supabase/server";
 import Button from "@/components/Button";
 import DeleteRevenueButton from "./DeleteRevenueButton";
 import DeleteCostButton from "./DeleteCostButton";
+import DeleteEstimatedRevenueButton from "./DeleteEstimatedRevenueButton";
+import DeleteEstimatedCostButton from "./DeleteEstimatedCostButton";
+import AcceptProjectButton from "./AcceptProjectButton";
 import { sumCents, formatCents, calculateMarginPercent, formatMarginPercent, profitToneClass } from "@/lib/finance/money";
-import type { Revenue, Cost } from "@/types/supabase";
+import type { Revenue, Cost, EstimatedRevenue, EstimatedCost } from "@/types/supabase";
 
 function formatDate(iso: string) {
   return new Date(iso + "T00:00:00").toLocaleDateString(undefined, {
@@ -22,6 +25,13 @@ const SUCCESS_MESSAGES: Record<string, string> = {
   costCreated: "Cost added.",
   costUpdated: "Cost updated.",
   costDeleted: "Cost deleted.",
+  estimatedRevenueCreated: "Estimated revenue added.",
+  estimatedRevenueUpdated: "Estimated revenue updated.",
+  estimatedRevenueDeleted: "Estimated revenue deleted.",
+  estimatedCostCreated: "Estimated cost added.",
+  estimatedCostUpdated: "Estimated cost updated.",
+  estimatedCostDeleted: "Estimated cost deleted.",
+  accepted: "Project accepted.",
 };
 
 export default async function ProjectDetailPage({
@@ -90,6 +100,35 @@ export default async function ProjectDetailPage({
   const profitCents = revenueCents - costCents;
   const marginPercent = calculateMarginPercent(profitCents, revenueCents);
 
+  // Estimated revenue/costs: separate tables from actual revenues/costs
+  // (Sprint 18/19 decision — never mixed in one table), but scoped and
+  // aggregated with the exact same pattern and the exact same
+  // lib/finance/money.ts functions used above for the actual totals.
+  const { data: estimatedRevenues } = await supabase
+    .from("estimated_revenues")
+    .select("*")
+    .eq("project_id", id)
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false });
+
+  const { data: estimatedCosts } = await supabase
+    .from("estimated_costs")
+    .select("*")
+    .eq("project_id", id)
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false });
+
+  const estimatedRevenueRows: EstimatedRevenue[] = estimatedRevenues ?? [];
+  const estimatedCostRows: EstimatedCost[] = estimatedCosts ?? [];
+
+  const estimatedRevenueCents = sumCents(estimatedRevenueRows.map((r) => r.amount));
+  const estimatedCostCents = sumCents(estimatedCostRows.map((c) => c.amount));
+  const estimatedProfitCents = estimatedRevenueCents - estimatedCostCents;
+  const estimatedMarginPercent = calculateMarginPercent(
+    estimatedProfitCents,
+    estimatedRevenueCents,
+  );
+
   const successKey = Object.keys(SUCCESS_MESSAGES).find(
     (key) => searchParamsResolved[key] !== undefined,
   );
@@ -119,7 +158,8 @@ export default async function ProjectDetailPage({
           Revenue x 100, both computed from exact integer-cent totals
           (lib/finance/money.ts) — not from these already-rounded
           display strings. */}
-      <div className="mt-6 grid grid-cols-4 gap-4 rounded-md border border-rule p-4 text-center">
+      <h2 className="mt-6 text-lg font-medium tracking-tight">Actual</h2>
+      <div className="mt-2 grid grid-cols-4 gap-4 rounded-md border border-rule p-4 text-center">
         <div>
           <p className="text-xs text-muted">Revenue</p>
           <p className="text-lg font-medium">
@@ -221,6 +261,187 @@ export default async function ProjectDetailPage({
                     Edit
                   </Link>
                   <DeleteCostButton costId={cost.id} projectId={id} />
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {/* Estimated — kept visually and structurally separate from the
+          Actual figures above: its own heading, its own stat box, its
+          own lists, backed by separate tables (estimated_revenues /
+          estimated_costs), never merged with revenues/costs. */}
+      <h2 className="mt-14 text-lg font-medium tracking-tight">Estimated</h2>
+      <div className="mt-2 grid grid-cols-4 gap-4 rounded-md border border-rule p-4 text-center">
+        <div>
+          <p className="text-xs text-muted">Est. Revenue</p>
+          <p className="text-lg font-medium">
+            {currency} {formatCents(estimatedRevenueCents)}
+          </p>
+        </div>
+        <div>
+          <p className="text-xs text-muted">Est. Costs</p>
+          <p className="text-lg font-medium">
+            {currency} {formatCents(estimatedCostCents)}
+          </p>
+        </div>
+        <div>
+          <p className="text-xs text-muted">Est. Profit</p>
+          <p className={`text-lg font-medium ${profitToneClass(estimatedProfitCents)}`}>
+            {currency} {formatCents(estimatedProfitCents)}
+          </p>
+        </div>
+        <div>
+          <p className="text-xs text-muted">Est. Margin</p>
+          <p className={`text-lg font-medium ${profitToneClass(estimatedMarginPercent)}`}>
+            {formatMarginPercent(estimatedMarginPercent)}
+          </p>
+        </div>
+      </div>
+
+      {/* Profitability Check: a plain-language read of the Estimated
+          numbers above, for before the job is accepted. Reuses the
+          same estimatedRevenueCents/estimatedProfitCents/
+          estimatedMarginPercent already computed for the stat box —
+          no new calculation. This is informational only: it states
+          profitable/break-even/loss and lets the user decide, it never
+          recommends accepting or rejecting the project. */}
+      <section className="mt-10 rounded-md border border-rule p-4">
+        <h2 className="text-lg font-medium tracking-tight">Profitability Check</h2>
+
+        {estimatedRevenueCents === 0 ? (
+          <p className="mt-2 text-sm text-muted">
+            Add an estimated revenue to see a profitability check for this project.
+          </p>
+        ) : (
+          <>
+            <p className={`mt-2 text-base font-medium ${profitToneClass(estimatedProfitCents)}`}>
+              {estimatedProfitCents > 0
+                ? "Estimated result: profitable."
+                : estimatedProfitCents < 0
+                  ? "Estimated result: loss."
+                  : "Estimated result: break-even."}
+            </p>
+
+            <dl className="mt-4 grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
+              <div>
+                <dt className="text-xs text-muted">Estimated Revenue</dt>
+                <dd>{currency} {formatCents(estimatedRevenueCents)}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-muted">Estimated Costs</dt>
+                <dd>{currency} {formatCents(estimatedCostCents)}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-muted">Estimated Profit</dt>
+                <dd className={profitToneClass(estimatedProfitCents)}>
+                  {currency} {formatCents(estimatedProfitCents)}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs text-muted">Estimated Margin</dt>
+                <dd className={profitToneClass(estimatedMarginPercent)}>
+                  {formatMarginPercent(estimatedMarginPercent)}
+                </dd>
+              </div>
+            </dl>
+          </>
+        )}
+      </section>
+
+      {/* Explicit accept action, right after the Profitability Check —
+          intentionally not gated by the check's result: the app states
+          facts, the user decides. Once accepted_at is set, the action
+          is hidden rather than shown-disabled, since this is a
+          one-way, non-reversible decision in this sprint (no un-accept
+          workflow requested or built). */}
+      <section className="mt-6">
+        {project.accepted_at ? (
+          <p className="text-sm text-muted">
+            This project was accepted on {formatDate(project.accepted_at.slice(0, 10))}.
+          </p>
+        ) : (
+          <AcceptProjectButton projectId={id} />
+        )}
+      </section>
+
+      {/* Estimated Revenue */}
+      <section className="mt-10">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-medium tracking-tight">Estimated Revenue</h2>
+          <Button href={`/dashboard/projects/${id}/estimated-revenue/new`} variant="primary">
+            Add Estimated Revenue
+          </Button>
+        </div>
+
+        {estimatedRevenueRows.length === 0 ? (
+          <p className="text-sm text-muted">No estimated revenue entries yet.</p>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {estimatedRevenueRows.map((estimatedRevenue) => (
+              <li
+                key={estimatedRevenue.id}
+                className="flex items-center justify-between gap-3 rounded-md border border-rule p-3"
+              >
+                <p className="text-sm">{estimatedRevenue.description}</p>
+                <div className="flex items-center gap-4">
+                  <p className="text-sm font-medium">
+                    {currency} {estimatedRevenue.amount}
+                  </p>
+                  <Link
+                    href={`/dashboard/projects/${id}/estimated-revenue/${estimatedRevenue.id}/edit`}
+                    className="text-sm underline underline-offset-2"
+                  >
+                    Edit
+                  </Link>
+                  <DeleteEstimatedRevenueButton
+                    estimatedRevenueId={estimatedRevenue.id}
+                    projectId={id}
+                  />
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {/* Estimated Costs */}
+      <section className="mt-10">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-medium tracking-tight">Estimated Costs</h2>
+          <Button href={`/dashboard/projects/${id}/estimated-costs/new`} variant="primary">
+            Add Estimated Cost
+          </Button>
+        </div>
+
+        {estimatedCostRows.length === 0 ? (
+          <p className="text-sm text-muted">No estimated cost entries yet.</p>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {estimatedCostRows.map((estimatedCost) => (
+              <li
+                key={estimatedCost.id}
+                className="flex items-center justify-between gap-3 rounded-md border border-rule p-3"
+              >
+                <div>
+                  <p className="text-sm">{estimatedCost.description}</p>
+                  <p className="text-xs text-muted">{estimatedCost.category}</p>
+                </div>
+                <div className="flex items-center gap-4">
+                  <p className="text-sm font-medium">
+                    {currency} {estimatedCost.amount}
+                  </p>
+                  <Link
+                    href={`/dashboard/projects/${id}/estimated-costs/${estimatedCost.id}/edit`}
+                    className="text-sm underline underline-offset-2"
+                  >
+                    Edit
+                  </Link>
+                  <DeleteEstimatedCostButton
+                    estimatedCostId={estimatedCost.id}
+                    projectId={id}
+                  />
                 </div>
               </li>
             ))}
