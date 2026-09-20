@@ -163,6 +163,44 @@ export async function acceptProject(
   redirect(`/dashboard/projects/${id}?accepted=1`);
 }
 
+// Reuses the existing status column and the existing "Completed" value
+// from STATUSES — not a second status system. Kept as its own action
+// (rather than routed through the generic updateProject form) for the
+// same reason as acceptProject: this is one deliberate lifecycle
+// transition, not a general field edit. The extra .eq("status",
+// "Active") guard means this can only ever move Active -> Completed
+// through this action; it can't complete an already-Archived project
+// or silently no-op back onto an already-Completed one.
+export async function completeProject(
+  id: string,
+  _prevState: ProjectFormState,
+  _formData: FormData,
+): Promise<ProjectFormState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) redirect("/login");
+
+  const { data: updated, error } = await supabase
+    .from("projects")
+    .update({ status: "Completed" })
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .eq("status", "Active")
+    .select("id")
+    .single();
+
+  if (error || !updated) {
+    return {
+      error: "Could not mark the project as completed. It may not exist, may not be Active, or you may not have access to it.",
+    };
+  }
+
+  redirect(`/dashboard/projects/${id}?completed=1`);
+}
+
 export async function deleteProject(
   id: string,
   _prevState: ProjectFormState,

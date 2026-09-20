@@ -7,6 +7,7 @@ import DeleteCostButton from "./DeleteCostButton";
 import DeleteEstimatedRevenueButton from "./DeleteEstimatedRevenueButton";
 import DeleteEstimatedCostButton from "./DeleteEstimatedCostButton";
 import AcceptProjectButton from "./AcceptProjectButton";
+import CompleteProjectButton from "./CompleteProjectButton";
 import { sumCents, formatCents, calculateMarginPercent, formatMarginPercent, profitToneClass } from "@/lib/finance/money";
 import type { Revenue, Cost, EstimatedRevenue, EstimatedCost } from "@/types/supabase";
 
@@ -16,6 +17,22 @@ function formatDate(iso: string) {
     month: "short",
     day: "numeric",
   });
+}
+
+// Duplicated from app/dashboard/projects/page.tsx rather than shared —
+// same small-local-helper precedent already established there.
+function StatusBadge({ status }: { status: string }) {
+  const styles =
+    status === "Active"
+      ? "bg-profit/10 text-profit"
+      : status === "Completed"
+        ? "bg-signal/10 text-signal"
+        : "bg-ink/5 text-muted";
+  return (
+    <span className={`inline-flex rounded-full px-2 py-0.5 text-xs ${styles}`}>
+      {status}
+    </span>
+  );
 }
 
 const SUCCESS_MESSAGES: Record<string, string> = {
@@ -32,6 +49,7 @@ const SUCCESS_MESSAGES: Record<string, string> = {
   estimatedCostUpdated: "Estimated cost updated.",
   estimatedCostDeleted: "Estimated cost deleted.",
   accepted: "Project accepted.",
+  completed: "Project marked as completed.",
 };
 
 export default async function ProjectDetailPage({
@@ -134,6 +152,18 @@ export default async function ProjectDetailPage({
   );
   const successMessage = successKey ? SUCCESS_MESSAGES[successKey] : null;
 
+  // Estimated vs Actual: plain differences between totals already
+  // computed above — not a new calculation engine. Margin difference
+  // is null (shown as "N/A") if either side is null, since a
+  // percentage-point gap against an undefined margin is meaningless.
+  const revenueDiffCents = revenueCents - estimatedRevenueCents;
+  const costDiffCents = costCents - estimatedCostCents;
+  const profitDiffCents = profitCents - estimatedProfitCents;
+  const marginDiffPercent =
+    marginPercent !== null && estimatedMarginPercent !== null
+      ? marginPercent - estimatedMarginPercent
+      : null;
+
   return (
     <main className="mx-auto max-w-4xl px-6 py-12">
       <Link href="/dashboard/projects" className="text-sm text-muted underline underline-offset-2">
@@ -141,7 +171,10 @@ export default async function ProjectDetailPage({
       </Link>
 
       <div className="mt-2">
-        <h1 className="text-2xl font-medium tracking-tight">{project.name}</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-medium tracking-tight">{project.name}</h1>
+          <StatusBadge status={project.status} />
+        </div>
         {customer?.name && <p className="text-muted">{customer.name}</p>}
       </div>
 
@@ -185,6 +218,16 @@ export default async function ProjectDetailPage({
           </p>
         </div>
       </div>
+
+      {/* Marking complete is only offered while Active — once
+          Completed or Archived, the final Actual result above already
+          speaks for itself and completeProject's own "status = Active"
+          guard would reject the action anyway. */}
+      {project.status === "Active" && (
+        <div className="mt-4">
+          <CompleteProjectButton projectId={id} />
+        </div>
+      )}
 
       {/* Revenue */}
       <section className="mt-10">
@@ -448,6 +491,68 @@ export default async function ProjectDetailPage({
           </ul>
         )}
       </section>
+
+      {/* Estimated vs Actual: a straight side-by-side of the totals
+          already shown in the Actual and Estimated boxes above, plus
+          their difference. Cost's difference is colored with the sign
+          flipped (profitToneClass(-costDiffCents)): a higher actual
+          cost than estimated is worse, not better, unlike Revenue and
+          Profit where higher-than-estimated is good. */}
+      <h2 className="mt-14 text-lg font-medium tracking-tight">Estimated vs Actual</h2>
+      <div className="mt-2 overflow-x-auto">
+        <table className="w-full text-left text-sm">
+          <thead>
+            <tr className="border-b border-rule text-muted">
+              <th className="py-2 pr-4 font-medium"></th>
+              <th className="py-2 pr-4 font-medium">Estimated</th>
+              <th className="py-2 pr-4 font-medium">Actual</th>
+              <th className="py-2 font-medium">Difference</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="border-b border-rule/60">
+              <td className="py-2 pr-4 text-muted">Revenue</td>
+              <td className="py-2 pr-4">{currency} {formatCents(estimatedRevenueCents)}</td>
+              <td className="py-2 pr-4">{currency} {formatCents(revenueCents)}</td>
+              <td className={`py-2 ${profitToneClass(revenueDiffCents)}`}>
+                {currency} {formatCents(revenueDiffCents)}
+              </td>
+            </tr>
+            <tr className="border-b border-rule/60">
+              <td className="py-2 pr-4 text-muted">Costs</td>
+              <td className="py-2 pr-4">{currency} {formatCents(estimatedCostCents)}</td>
+              <td className="py-2 pr-4">{currency} {formatCents(costCents)}</td>
+              <td className={`py-2 ${profitToneClass(-costDiffCents)}`}>
+                {currency} {formatCents(costDiffCents)}
+              </td>
+            </tr>
+            <tr className="border-b border-rule/60">
+              <td className="py-2 pr-4 text-muted">Profit</td>
+              <td className={`py-2 pr-4 ${profitToneClass(estimatedProfitCents)}`}>
+                {currency} {formatCents(estimatedProfitCents)}
+              </td>
+              <td className={`py-2 pr-4 ${profitToneClass(profitCents)}`}>
+                {currency} {formatCents(profitCents)}
+              </td>
+              <td className={`py-2 ${profitToneClass(profitDiffCents)}`}>
+                {currency} {formatCents(profitDiffCents)}
+              </td>
+            </tr>
+            <tr>
+              <td className="py-2 pr-4 text-muted">Margin</td>
+              <td className={`py-2 pr-4 ${profitToneClass(estimatedMarginPercent)}`}>
+                {formatMarginPercent(estimatedMarginPercent)}
+              </td>
+              <td className={`py-2 pr-4 ${profitToneClass(marginPercent)}`}>
+                {formatMarginPercent(marginPercent)}
+              </td>
+              <td className={`py-2 ${profitToneClass(marginDiffPercent)}`}>
+                {formatMarginPercent(marginDiffPercent)}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </main>
   );
 }
