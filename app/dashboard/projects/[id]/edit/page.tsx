@@ -39,10 +39,10 @@ export default async function EditProjectPage({
   return (
     <main className="mx-auto max-w-md px-6 py-12">
       <Link
-        href="/dashboard/projects"
+        href={`/dashboard/projects/${id}`}
         className="text-sm text-muted underline underline-offset-2"
       >
-        ← Projects
+        ← Project
       </Link>
 
       <h1 className="mb-6 mt-2 text-2xl font-medium tracking-tight">

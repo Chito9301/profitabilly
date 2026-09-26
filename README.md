@@ -24,9 +24,26 @@ construction, contractors, and other service businesses.
   tables (1 project → many of each), managed from the new
   `/dashboard/projects/[id]` detail page, which also shows
   Revenue/Cost totals and Profit for that project.
+- **Mini-Sprint 19** — Profit planning foundation: `estimated_revenues`
+  and `estimated_costs` tables (kept separate from `revenues`/`costs`,
+  not a shared table with an `is_estimate` flag, so no query for
+  actuals can ever accidentally include an estimate). The project
+  detail page shows Estimated Revenue/Costs, Estimated Profit/Margin,
+  Estimated vs Actual, Cost Variance, and Projected Final Profit (the
+  last one only while the project is Active — see
+  [Project lifecycle](#project-lifecycle)).
+- **Mini-Sprint 21** — Explicit project acceptance: a nullable
+  `accepted_at` timestamp on `projects` (not a new status value), set
+  once via "Accept Project" — see [Project lifecycle](#project-lifecycle).
+- **Mini-Sprint 32** — Navigation: the project detail page now has its
+  own "Edit" link (previously only reachable from the Projects list);
+  editing a project now returns to that project's detail page instead
+  of the list, matching how Revenue/Cost/Estimated edits already
+  behaved.
 
-Not implemented yet: invoices, payments, dashboard metrics, reports —
-later mini-sprints.
+Not implemented yet: invoices, payments, reports. The dashboard shows
+simple running totals (all-time sums), not date-range or per-period
+metrics.
 
 ## Stack
 
@@ -40,31 +57,49 @@ later mini-sprints.
 ```
 app/
   dashboard/
-    customers/       Customers list, create, edit (protected)
-    projects/        Projects list, create, edit; [id]/ detail page
-                       with Revenue, Costs, Profit (protected)
-  login/, signup/     Auth pages
-components/          Shared, reusable UI primitives
+    customers/        Customers list, create, edit (protected)
+    projects/         Projects list, create, edit
+      [id]/            Detail page: Actual + Estimated financials,
+                        Accept/Complete actions, Edit link; nested
+                        revenue/, costs/, estimated-revenue/,
+                        estimated-costs/ create+edit routes
+  login/, signup/      Auth pages
+  forgot-password/,
+  reset-password/      Password recovery pages
+  auth/callback/       OAuth/recovery code exchange (route handler)
+components/            Shared, reusable UI primitives (Button, TextField,
+                       SelectField, TextareaField)
 lib/
-  auth/              Auth server actions, error mapping
-  customers/          Customer server actions
-  projects/          Project server actions
-  revenue/           Revenue server actions
-  costs/             Cost server actions, category constants
-  finance/           Shared Revenue/Cost validation + money helpers
-  supabase/          Supabase client factories (browser, server, middleware)
-public/              Static assets
+  auth/                Auth server actions, error mapping, constants
+  customers/           Customer server actions, status constants
+  projects/            Project server actions (create/update/delete/
+                       accept/complete), status constants
+  revenue/             Revenue server actions
+  costs/               Cost server actions, category constants
+  estimated-revenue/   Estimated Revenue server actions
+  estimated-costs/     Estimated Cost server actions
+  finance/             Shared money helpers (cents math) + shared
+                       description/amount/date/ownership validation
+  supabase/            Supabase client factories (browser, server, middleware)
+public/                Static assets
 supabase/
-  migrations/        SQL migrations (schema, RLS policies)
-types/               Shared TypeScript types
+  migrations/          SQL migrations (schema, RLS policies)
+types/                 Shared TypeScript types (hand-written, mirrors
+                       the migrations — see Database schema below)
 ```
+
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for how these layers fit
+together, module-by-module conventions, and boundaries future changes
+must not break.
 
 ## Database schema
 
-Defined across three migrations in `supabase/migrations/`:
+Defined across five migrations in `supabase/migrations/`:
 `20260909075059_create_profiles_and_customers.sql`,
-`20260910165452_create_projects.sql`, and
-`20260911000458_create_revenue_and_costs.sql`.
+`20260910165452_create_projects.sql`,
+`20260911000458_create_revenue_and_costs.sql`,
+`20260917083615_create_estimated_revenue_and_costs.sql`, and
+`20260918012926_add_accepted_at_to_projects.sql`.
 
 - **profiles** — one row per authenticated user, keyed by the same UUID
   as `auth.users.id`. A `handle_new_user` trigger inserts this row
@@ -73,24 +108,35 @@ Defined across three migrations in `supabase/migrations/`:
   many customers).
 - **projects** — belongs to one profile and one customer (customers 1 →
   many projects). `customer_id` is `ON DELETE RESTRICT`, so a customer
-  with projects can't be deleted until they are.
-- **revenues** / **costs** — each belongs to one profile and one project
-  (projects 1 → many of each). `project_id` is also `ON DELETE
-  RESTRICT` for the same reason. Amounts are `numeric(12,2)`, never
-  floating point.
+  with projects can't be deleted until they are. `status` defaults to
+  `'Active'` and `accepted_at` is a nullable timestamp (see
+  [Project lifecycle](#project-lifecycle) — neither is a DB-level
+  enum/check, both are app-validated only, by deliberate consistency
+  with `customers.status`).
+- **revenues** / **costs** / **estimated_revenues** / **estimated_costs**
+  — each belongs to one profile and one project (projects 1 → many of
+  each). `project_id` is also `ON DELETE RESTRICT` for the same reason
+  as `customer_id` above. Amounts are `numeric(12,2)` with a DB-level
+  `check (amount > 0)`, never floating point. Estimated tables are
+  kept structurally separate from the actual tables (not a shared
+  table with an `is_estimate` flag), so no query for actuals can ever
+  accidentally include an estimate.
 
-Row Level Security is enabled on all five tables. Every policy checks
+Row Level Security is enabled on all seven tables. Every policy checks
 `auth.uid()` against the row's owner (`user_id`, or `id` for profiles);
-`projects`/`revenues`/`costs` additionally require, at the RLS layer,
-that the referenced customer/project belongs to the same user:
+`projects`/`revenues`/`costs`/`estimated_revenues`/`estimated_costs`
+additionally require, at the RLS layer, that the referenced
+customer/project belongs to the same user:
 
-| Table     | select | insert | update | delete |
-|-----------|--------|--------|--------|--------|
-| profiles  | own row | — (trigger only) | own row | — |
-| customers | own rows | own rows | own rows | own rows |
-| projects  | own rows | own rows + customer must be own | own rows + customer must be own | own rows |
-| revenues  | own rows | own rows + project must be own | own rows + project must be own | own rows |
-| costs     | own rows | own rows + project must be own | own rows + project must be own | own rows |
+| Table              | select   | insert                            | update                            | delete   |
+|--------------------|----------|------------------------------------|------------------------------------|----------|
+| profiles           | own row  | — (trigger only)                   | own row                            | —        |
+| customers          | own rows | own rows                           | own rows                           | own rows |
+| projects           | own rows | own rows + customer must be own    | own rows + customer must be own    | own rows |
+| revenues           | own rows | own rows + project must be own     | own rows + project must be own     | own rows |
+| costs              | own rows | own rows + project must be own     | own rows + project must be own     | own rows |
+| estimated_revenues | own rows | own rows + project must be own     | own rows + project must be own     | own rows |
+| estimated_costs    | own rows | own rows + project must be own     | own rows + project must be own     | own rows |
 
 To apply the migrations to a Supabase project: `npx supabase db push`
 (or run the SQL files directly in the Supabase SQL editor).
@@ -125,19 +171,77 @@ implementation, just the standard pattern for middleware, which can't
 import `next/headers`.
 
 Auth (`lib/auth/actions.ts`), and CRUD for customers, projects, revenue,
-and costs (`lib/customers/`, `lib/projects/`, `lib/revenue/`,
-`lib/costs/`), are all implemented as server actions that call
+costs, estimated revenue, and estimated costs (`lib/customers/`,
+`lib/projects/`, `lib/revenue/`, `lib/costs/`, `lib/estimated-revenue/`,
+`lib/estimated-costs/`), are all implemented as server actions that call
 `createClient()` from `lib/supabase/server.ts` and re-check
 `auth.getUser()` themselves — every query is scoped to the signed-in
 user's id (and, for projects/revenue/costs, to the parent
 customer/project's owner too), with Row Level Security as the final
 backstop.
 
+## Authentication
+
+Signup, login, logout, and password recovery are implemented
+end-to-end (`lib/auth/actions.ts`, `app/login/`, `app/signup/`,
+`app/forgot-password/`, `app/reset-password/`,
+`app/auth/callback/route.ts`). Supabase (GoTrue) error strings are
+mapped to plain user-facing copy in `lib/auth/errors.ts` rather than
+shown directly.
+
+**Password recovery**: the login page links to a "forgot password"
+flow — request a reset email, open the link, set a new password. In
+Supabase, add the app's exact URL and `/auth/callback` path to
+**Authentication → URL Configuration → Redirect URLs**. Set
+`NEXT_PUBLIC_SITE_URL` in production to the canonical site origin (for
+example, `https://your-app.vercel.app`). The email redirect uses
+`/auth/callback?next=/reset-password`; the callback route only ever
+accepts that one fixed `next` value (never an arbitrary redirect
+target from the query string).
+
+`middleware.ts` protects every `/dashboard/*` route (redirects signed-out
+users to `/login`); each protected page also re-checks `auth.getUser()`
+itself, since middleware responses can be cached.
+
+## Project lifecycle
+
+A project's `status` is one of `Active` (default on create), `Completed`,
+or `Archived` (`lib/projects/constants.ts`). Two dedicated, guarded
+actions exist in `lib/projects/actions.ts`:
+
+- **Complete** (`completeProject`) — only succeeds if the project's
+  current status is exactly `Active`.
+- **Accept** (`acceptProject`) — sets `accepted_at` (a separate,
+  one-way timestamp, unrelated to `status`); this represents the user
+  reviewing and accepting the project's profitability check, not a
+  workflow stage.
+
+There is no dedicated "Archive" action — `Archived` is only reachable
+through the generic Edit Project form's status dropdown, which (unlike
+`completeProject`) does not validate what transition is being made:
+any status can be changed to any other status from that form. Revenue,
+Costs, Estimated Revenue, and Estimated Costs are **not** locked when a
+project is Completed or Archived — they remain fully editable through
+the same forms used for an Active project. The "Projected Final
+Profit" figure on the project detail page is only rendered while
+`status === "Active"` (it disappears, rather than freezing, once the
+project leaves that state). These are documented behaviors of the
+current code, not proposals — see `ARCHITECTURE.md` before changing
+any of them.
+
+## Navigation
+
+There is no shared header/nav component or app layout with navigation
+— `app/layout.tsx` is just the root HTML shell/fonts. Each page owns
+its own "back" link. The established convention: creating or editing
+Revenue, Costs, Estimated Revenue, or Estimated Costs always returns to
+that project's detail page (`/dashboard/projects/[id]`); as of
+Mini-Sprint 32, editing the project itself follows the same
+convention (previously it returned to the Projects list). The project
+detail page and the Projects list both link to Edit Project.
+
 ## What's intentionally not here yet
 
-The following are **not** implemented: invoices, payments, dashboard
-metrics, reports. These land in later mini-sprints.
-
-### Password recovery
-
-The login page includes a password recovery flow: users request a reset email, open the link, and set a new password. In Supabase, add the app's exact URL and `/auth/callback` path to **Authentication → URL Configuration → Redirect URLs**. Set `NEXT_PUBLIC_SITE_URL` in production to the canonical site origin (for example, `https://your-app.vercel.app`). The email redirect uses `/auth/callback?next=/reset-password`.
+Invoices, payments, and reports are **not** implemented. The dashboard
+shows simple all-time running totals, not date-range or per-period
+metrics.

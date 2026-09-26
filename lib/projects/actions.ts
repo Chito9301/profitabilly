@@ -123,7 +123,7 @@ export async function updateProject(
     };
   }
 
-  redirect("/dashboard/projects?updated=1");
+  redirect(`/dashboard/projects/${id}?updated=1`);
 }
 
 // Explicit, one-way acceptance: separate from status (which already

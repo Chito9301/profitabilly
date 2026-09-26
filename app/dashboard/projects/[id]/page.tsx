@@ -210,12 +210,20 @@ export default async function ProjectDetailPage({
         ← Projects
       </Link>
 
-      <div className="mt-2">
-        <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-medium tracking-tight">{project.name}</h1>
-          <StatusBadge status={project.status} />
+      <div className="mt-2 flex items-start justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-medium tracking-tight">{project.name}</h1>
+            <StatusBadge status={project.status} />
+          </div>
+          {customer?.name && <p className="text-muted">{customer.name}</p>}
         </div>
-        {customer?.name && <p className="text-muted">{customer.name}</p>}
+        <Link
+          href={`/dashboard/projects/${id}/edit`}
+          className="text-sm underline underline-offset-2"
+        >
+          Edit
+        </Link>
       </div>
 
       {successMessage && (
