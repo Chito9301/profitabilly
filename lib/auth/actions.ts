@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { friendlyAuthError } from "@/lib/auth/errors";
 
@@ -124,4 +125,96 @@ export async function logOut(): Promise<void> {
   const supabase = await createClient();
   await supabase.auth.signOut();
   redirect("/login");
+}
+
+
+export async function requestPasswordReset(
+  _prevState: AuthFormState,
+  formData: FormData,
+): Promise<AuthFormState> {
+  const email = requireField(formData, "email");
+
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return { error: "Enter a valid email address." };
+  }
+
+  const requestHeaders = await headers();
+  const configuredOrigin = process.env.NEXT_PUBLIC_SITE_URL;
+  const requestOrigin = requestHeaders.get("origin");
+  const origin = configuredOrigin || requestOrigin;
+
+  if (!origin) {
+    return { error: "We couldn't start password recovery. Please try again." };
+  }
+
+  let redirectTo: string;
+  try {
+    const parsedOrigin = new URL(origin);
+    if (parsedOrigin.protocol !== "https:" && parsedOrigin.hostname !== "localhost") {
+      return { error: "We couldn't start password recovery. Please try again." };
+    }
+    redirectTo = new URL("/auth/callback?next=/reset-password", parsedOrigin).toString();
+  } catch {
+    return { error: "We couldn't start password recovery. Please try again." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo,
+  });
+
+  if (error) {
+    return { error: friendlyAuthError(error.message) };
+  }
+
+  // Keep the response identical whether or not the email belongs to an
+  // account, so the form does not disclose registered addresses.
+  return {
+    message: "If an account exists for that email, a password reset link has been sent. Check your inbox and spam folder.",
+  };
+}
+
+export async function updatePassword(
+  _prevState: AuthFormState,
+  formData: FormData,
+): Promise<AuthFormState> {
+  const password = formData.get("password");
+  const confirmPassword = formData.get("confirmPassword");
+
+  if (
+    typeof password !== "string" ||
+    typeof confirmPassword !== "string" ||
+    !password ||
+    !confirmPassword
+  ) {
+    return { error: "Please enter and confirm your new password." };
+  }
+
+  if (password.length < 6) {
+    return { error: "Password must be at least 6 characters." };
+  }
+
+  if (password !== confirmPassword) {
+    return { error: "The passwords do not match." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    return {
+      error: "Your recovery session has expired. Request a new password reset link.",
+    };
+  }
+
+  const { error } = await supabase.auth.updateUser({ password });
+
+  if (error) {
+    return { error: friendlyAuthError(error.message) };
+  }
+
+  redirect("/dashboard");
 }

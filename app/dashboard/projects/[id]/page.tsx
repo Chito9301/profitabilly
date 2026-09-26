@@ -9,6 +9,7 @@ import DeleteEstimatedCostButton from "./DeleteEstimatedCostButton";
 import AcceptProjectButton from "./AcceptProjectButton";
 import CompleteProjectButton from "./CompleteProjectButton";
 import { sumCents, formatCents, calculateMarginPercent, formatMarginPercent, profitToneClass } from "@/lib/finance/money";
+import { CATEGORIES } from "@/lib/costs/constants";
 import type { Revenue, Cost, EstimatedRevenue, EstimatedCost } from "@/types/supabase";
 
 function formatDate(iso: string) {
@@ -163,6 +164,45 @@ export default async function ProjectDetailPage({
     marginPercent !== null && estimatedMarginPercent !== null
       ? marginPercent - estimatedMarginPercent
       : null;
+
+  // Cost Variance by Category: groups the same costRows/estimatedCostRows
+  // already loaded above by the existing fixed category list — no new
+  // query, no new category, no new sum logic. A category with no rows
+  // on either side sums to 0 via sumCents([]), the same safe behavior
+  // already used everywhere else for empty lists (not invented data,
+  // just an accurate zero).
+  const costVarianceByCategory = CATEGORIES.map((category) => {
+    const estimatedCategoryCents = sumCents(
+      estimatedCostRows.filter((c) => c.category === category).map((c) => c.amount),
+    );
+    const actualCategoryCents = sumCents(
+      costRows.filter((c) => c.category === category).map((c) => c.amount),
+    );
+    return {
+      category,
+      estimatedCategoryCents,
+      actualCategoryCents,
+      diffCategoryCents: actualCategoryCents - estimatedCategoryCents,
+    };
+  });
+
+  // Projected Final Profit: "if the remaining estimate is applied to
+  // what's actually happened so far, where would this land?" Once
+  // actual already exceeds (or equals) the estimate on either side,
+  // there's nothing left to project — Math.max(..., 0) clamps that to
+  // zero so an already-realized amount is never added on top of
+  // itself (no double counting).
+  const remainingEstimatedRevenueCents = Math.max(
+    estimatedRevenueCents - revenueCents,
+    0,
+  );
+  const remainingEstimatedCostCents = Math.max(
+    estimatedCostCents - costCents,
+    0,
+  );
+  const projectedFinalRevenueCents = revenueCents + remainingEstimatedRevenueCents;
+  const projectedFinalCostCents = costCents + remainingEstimatedCostCents;
+  const projectedFinalProfitCents = projectedFinalRevenueCents - projectedFinalCostCents;
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-12">
@@ -553,6 +593,72 @@ export default async function ProjectDetailPage({
           </tbody>
         </table>
       </div>
+
+      {/* Cost Variance by Category: same Actual - Estimated convention
+          and the same inverted tone as the aggregate Costs row above
+          (higher actual cost than estimated is unfavorable, so it's
+          colored via profitToneClass(-diff), not profitToneClass(diff)). */}
+      <h2 className="mt-14 text-lg font-medium tracking-tight">Cost Variance by Category</h2>
+      <div className="mt-2 overflow-x-auto">
+        <table className="w-full text-left text-sm">
+          <thead>
+            <tr className="border-b border-rule text-muted">
+              <th className="py-2 pr-4 font-medium">Category</th>
+              <th className="py-2 pr-4 font-medium">Estimated</th>
+              <th className="py-2 pr-4 font-medium">Actual</th>
+              <th className="py-2 font-medium">Difference</th>
+            </tr>
+          </thead>
+          <tbody>
+            {costVarianceByCategory.map(
+              ({ category, estimatedCategoryCents, actualCategoryCents, diffCategoryCents }) => (
+                <tr key={category} className="border-b border-rule/60 last:border-b-0">
+                  <td className="py-2 pr-4 text-muted">{category}</td>
+                  <td className="py-2 pr-4">{currency} {formatCents(estimatedCategoryCents)}</td>
+                  <td className="py-2 pr-4">{currency} {formatCents(actualCategoryCents)}</td>
+                  <td className={`py-2 ${profitToneClass(-diffCategoryCents)}`}>
+                    {currency} {formatCents(diffCategoryCents)}
+                  </td>
+                </tr>
+              ),
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Projected Final Profit: informational only, shown only while
+          the project is still Active — once Completed/Archived, the
+          Actual figures above already are the final result, so there's
+          nothing left to project. */}
+      {project.status === "Active" && (
+        <>
+          <h2 className="mt-14 text-lg font-medium tracking-tight">Projected Final Profit</h2>
+          <p className="mt-1 text-sm text-muted">
+            If the remaining estimate plays out as planned, on top of what has
+            actually happened so far.
+          </p>
+          <div className="mt-2 grid grid-cols-3 gap-4 rounded-md border border-rule p-4 text-center">
+            <div>
+              <p className="text-xs text-muted">Projected Revenue</p>
+              <p className="text-lg font-medium">
+                {currency} {formatCents(projectedFinalRevenueCents)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted">Projected Costs</p>
+              <p className="text-lg font-medium">
+                {currency} {formatCents(projectedFinalCostCents)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted">Projected Profit</p>
+              <p className={`text-lg font-medium ${profitToneClass(projectedFinalProfitCents)}`}>
+                {currency} {formatCents(projectedFinalProfitCents)}
+              </p>
+            </div>
+          </div>
+        </>
+      )}
     </main>
   );
 }

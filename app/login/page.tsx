@@ -3,7 +3,12 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import LoginForm from "./LoginForm";
 
-export default async function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const { error: authError } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -18,6 +23,17 @@ export default async function LoginPage() {
         <h1 className="text-center text-2xl font-medium tracking-tight">
           Log in
         </h1>
+
+        {authError === "recovery_link_invalid" && (
+          <p role="alert" className="mt-6 text-center text-sm text-red-700">
+            This password reset link is invalid or has expired. Request a new one.
+          </p>
+        )}
+        {authError === "recovery_session_missing" && (
+          <p role="alert" className="mt-6 text-center text-sm text-red-700">
+            Your recovery session has expired. Request a new password reset link.
+          </p>
+        )}
 
         <LoginForm />
 

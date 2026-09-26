@@ -137,3 +137,7 @@ backstop.
 
 The following are **not** implemented: invoices, payments, dashboard
 metrics, reports. These land in later mini-sprints.
+
+### Password recovery
+
+The login page includes a password recovery flow: users request a reset email, open the link, and set a new password. In Supabase, add the app's exact URL and `/auth/callback` path to **Authentication → URL Configuration → Redirect URLs**. Set `NEXT_PUBLIC_SITE_URL` in production to the canonical site origin (for example, `https://your-app.vercel.app`). The email redirect uses `/auth/callback?next=/reset-password`.
