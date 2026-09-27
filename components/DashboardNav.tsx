@@ -21,6 +21,14 @@ function isActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
+// mailto link is intentionally not part of LINKS: it's not an app
+// section (no route, no active-state underline), just a quiet way to
+// reach the developer. Body is omitted (not set to ""), which is the
+// standard way to leave a mailto's body empty for the user to fill in.
+const FEEDBACK_MAILTO =
+  "mailto:miproyecto353@gmail.com?subject=" +
+  encodeURIComponent("Profitabilly Feedback");
+
 // The active section is marked by an underline bar AND darker text (never
 // color alone), plus aria-current for screen readers. -mb-px lets the bar
 // sit on the nav's own bottom border. min-h-12 = 48px touch target on
@@ -48,6 +56,28 @@ export default function DashboardNav() {
             </Link>
           );
         })}
+
+        {/* Small and quiet on purpose (Mini-Sprint 43): smaller text,
+            muted color, no bottom-border indicator, no aria-current —
+            it should read as a minor utility link, not a fourth nav
+            section. ml-auto keeps it out of the way on the right. */}
+        <a
+          href={FEEDBACK_MAILTO}
+          className="ml-auto inline-flex min-h-12 shrink-0 items-center gap-1 text-xs text-muted transition-colors hover:text-ink-soft sm:min-h-10"
+        >
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 16 16"
+            className="h-3.5 w-3.5 shrink-0"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.3"
+          >
+            <rect x="1.5" y="3.5" width="13" height="9" rx="1.5" />
+            <path d="M2 4.5l6 4.5 6-4.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          Feedback
+        </a>
       </div>
     </nav>
   );

@@ -227,7 +227,7 @@ export default async function DashboardPage() {
 
   const { data: projects } = await supabase
     .from("projects")
-    .select("id, name, status")
+    .select("id, name, status, created_at")
     .eq("user_id", user.id);
 
   // Scoped by user_id only, same reasoning as the Projects list
@@ -260,6 +260,9 @@ export default async function DashboardPage() {
   const completedProjects = projectRows.filter(
     (p: { status: string }) => p.status === "Completed",
   ).length;
+  const archivedProjects = projectRows.filter(
+    (p: { status: string }) => p.status === "Archived",
+  ).length;
 
   const revenueCents = sumCents(
     (revenues ?? []).map((r: { amount: string }) => r.amount),
@@ -286,21 +289,36 @@ export default async function DashboardPage() {
     costAmountsByProject.set(c.project_id, list);
   }
 
-  const projectBars: ProjectBar[] = (
-    projects ?? []
-  ).map((p: { id: string; name: string; status: string }) => {
-    const projectRevenueCents = sumCents(
-      revenueAmountsByProject.get(p.id) ?? [],
-    );
-    const projectCostCents = sumCents(costAmountsByProject.get(p.id) ?? []);
-    return {
-      id: p.id,
-      name: p.name,
-      revenueCents: projectRevenueCents,
-      costCents: projectCostCents,
-      profitCents: projectRevenueCents - projectCostCents,
-    };
-  });
+  // Mini-Sprint 42: order the Project Profitability chart by recent
+  // activity. `projects` has no `updated_at` (see supabase/migrations
+  // and types/supabase.ts — only `created_at` and `accepted_at`
+  // exist, and neither is touched by updateProject/acceptProject on
+  // every edit), so there is no reliable signal for "last modified".
+  // `created_at` is the only real recency field, so it's what's used
+  // here: most-recently-created project first. This does NOT reflect
+  // later edits (e.g. renaming, changing status) — see the Mini-Sprint
+  // 42 report/README note for that limitation. No new field, column,
+  // or persistence logic was added to produce this order.
+  const projectsByRecency = [...(projects ?? [])].sort(
+    (a: { created_at: string }, b: { created_at: string }) =>
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+  );
+
+  const projectBars: ProjectBar[] = projectsByRecency.map(
+    (p: { id: string; name: string; status: string }) => {
+      const projectRevenueCents = sumCents(
+        revenueAmountsByProject.get(p.id) ?? [],
+      );
+      const projectCostCents = sumCents(costAmountsByProject.get(p.id) ?? []);
+      return {
+        id: p.id,
+        name: p.name,
+        revenueCents: projectRevenueCents,
+        costCents: projectCostCents,
+        profitCents: projectRevenueCents - projectCostCents,
+      };
+    },
+  );
   // Weighted overall margin: calculateMarginPercent(profit, revenue) is
   // the exact same function used per-project on the Projects list and
   // detail page — called here with the grand totals instead of one
@@ -386,10 +404,11 @@ export default async function DashboardPage() {
               View all projects
             </Link>
           </div>
-          {/* Mobile: three compact rows. sm and up: three columns. The
-              Active/Completed labels reuse StatusBadge, so they look
-              exactly like the badges on the Projects pages. */}
-          <dl className="mt-2 divide-y divide-rule sm:mt-3 sm:grid sm:grid-cols-3 sm:gap-3 sm:divide-y-0">
+          {/* Mobile: four compact rows. sm and up: four columns. The
+              Active/Completed/Archived labels reuse StatusBadge, so
+              they look exactly like the badges on the Projects
+              pages. */}
+          <dl className="mt-2 divide-y divide-rule sm:mt-3 sm:grid sm:grid-cols-4 sm:gap-3 sm:divide-y-0">
             <div className="flex items-center justify-between py-2 sm:block sm:py-0">
               <dt className="text-sm text-muted">Total Projects</dt>
               <dd className="text-xl font-semibold sm:mt-1">{totalProjects}</dd>
@@ -408,6 +427,14 @@ export default async function DashboardPage() {
               </dt>
               <dd className="text-xl font-semibold sm:mt-1">
                 {completedProjects}
+              </dd>
+            </div>
+            <div className="flex items-center justify-between py-2 sm:block sm:py-0">
+              <dt>
+                <StatusBadge status="Archived" />
+              </dt>
+              <dd className="text-xl font-semibold sm:mt-1">
+                {archivedProjects}
               </dd>
             </div>
           </dl>

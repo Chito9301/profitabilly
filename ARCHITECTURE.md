@@ -340,3 +340,36 @@ heading size/card markup rather than `components/Card.tsx`/`text-page`
 — see this file's Design system section and README's Status log,
 which already document that only Dashboard and Project Details were
 redesigned so far.
+
+## Dashboard: Archived count and chart order (Mini-Sprint 42)
+
+The Projects summary card (`app/dashboard/page.tsx`) now computes
+`archivedProjects` with the same `.filter(p => p.status === "Archived")`
+pattern already used for `activeProjects`/`completedProjects`, over the
+same `projects` array the page already fetches — no new query, no
+schema change.
+
+The Project Profitability chart is ordered by sorting a copy of that
+same `projects` array on `created_at` descending before building
+`projectBars`. `created_at` was added to the existing `.select(...)`
+(alongside the `id`/`name` already added in Mini-Sprint 40) since it
+was not previously selected on this page. This is the only genuine
+recency field on `projects` — there is no `updated_at` (see
+`supabase/migrations/20260910165452_create_projects.sql` and
+`types/supabase.ts`), and neither `updateProject` nor `acceptProject`/
+`completeProject` (`lib/projects/actions.ts`) touch `created_at`. So
+this order reflects creation recency only; an edited or newly-accepted
+project does not move to the front. Implementing true
+"last-modified" ordering would require adding an `updated_at` column
+(and a way to keep it current), which is a schema change out of this
+sprint's scope.
+
+## Feedback link (Mini-Sprint 43)
+
+`components/DashboardNav.tsx` renders one extra `<a>` after the mapped
+`LINKS`, pushed right with `ml-auto`: `href="mailto:miproyecto353@gmail.com?subject=Profitabilly%20Feedback"`
+(subject built with `encodeURIComponent`, body left unset — the standard
+way to leave a mailto body empty). Styled smaller/muted (`text-xs
+text-muted`) with no bottom-border active state and no `aria-current`,
+since it isn't a navigable section like Dashboard/Projects/Customers.
+No dependency was added for the icon — it's a small inline SVG.

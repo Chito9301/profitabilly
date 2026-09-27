@@ -58,6 +58,30 @@ construction, contractors, and other service businesses.
   heading, "Add Project" action in the header. Data queries and
   calculations are unchanged.
 
+- **Mini-Sprint 43** — Feedback link: a small "Feedback" `mailto:`
+  link added to `components/DashboardNav.tsx`, to the right of
+  Dashboard/Projects/Customers (`ml-auto`), in smaller/muted text with
+  a tiny envelope icon (inline SVG, no icon library added). Opens the
+  user's mail app addressed to `miproyecto353@gmail.com` with subject
+  "Profitabilly Feedback" and an empty body. It is intentionally not
+  part of the `LINKS` array — no route, no active-state underline —
+  since it's a utility link, not an app section.
+
+- **Mini-Sprint 42** — Dashboard fixes: (1) the Projects summary now
+  shows Archived alongside Total/Active/Completed, reusing the same
+  already-fetched `status` values (no new query). (2) The Project
+  Profitability chart is now ordered by `created_at` descending (most
+  recently created project first), reusing the table's existing
+  `created_at` column — nothing new was added to produce this order.
+  **Limitation, reported as required:** "No existe actualmente un dato
+  confiable para determinar la última modificación del proyecto.
+  Implementarlo correctamente requeriría cambiar el modelo/esquema, lo
+  cual está fuera del alcance de este mini-sprint." `projects` has no
+  `updated_at` column, and no existing action updates `created_at` on
+  edit, so the chart's order reflects when each project was created,
+  not when it was last edited/status-changed. No schema change, no new
+  column, and no financial calculation were made to implement this.
+
 - **Mini-Sprint 40** — Project Profitability chart on the Dashboard:
   a grouped bar chart (Revenue / Costs / Profit per project), placed
   between the KPI cards and the existing Projects card. Built with
