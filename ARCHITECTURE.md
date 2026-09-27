@@ -268,3 +268,16 @@ the page on focus below 16px) and `sm:text-sm` above.
   CLI is available to run
   `npx supabase gen types typescript --project-id <project-id> > types/supabase.ts`
   (see the comment at the top of that file).
+
+## Project Details layout (Mini-Sprint 38)
+
+`app/dashboard/projects/[id]/page.tsx` keeps every query and calculation
+in the top of the component exactly as before; only the returned JSX was
+reorganized. Section order: header → Profitability Check → Actual
+(stats, Revenue, Costs) → Estimated (stats, Estimated Revenue/Costs) →
+Estimated vs Actual / Cost Variance / Projected Final Profit (Active
+only) → Project actions (Accept while not yet accepted, Mark as
+Completed while Active). The page-local `Stat`, `SectionHeader` and
+`EntryRow` helpers are presentation-only and do no math; promote them to
+`components/` only if a second screen needs them. Comparison tables
+scroll inside their own `Card` so the page never scrolls sideways.

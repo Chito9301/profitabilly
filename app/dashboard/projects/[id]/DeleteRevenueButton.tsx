@@ -30,7 +30,7 @@ export default function DeleteRevenueButton({
         <button
           type="submit"
           disabled={isPending}
-          className="text-sm text-danger underline underline-offset-2 disabled:opacity-50"
+          className="inline-flex min-h-12 items-center text-sm font-medium text-danger underline underline-offset-2 disabled:opacity-50 sm:min-h-10"
         >
           {isPending ? "Deleting…" : "Delete"}
         </button>

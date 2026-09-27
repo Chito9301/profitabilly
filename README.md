@@ -58,6 +58,16 @@ construction, contractors, and other service businesses.
   heading, "Add Project" action in the header. Data queries and
   calculations are unchanged.
 
+- **Mini-Sprint 38** — Design completion (presentation only): Project
+  Details redesigned to the same language as the Dashboard — header
+  (name, status, customer, Edit), Profitability Check, Actual,
+  Estimated, Estimated vs Actual (+ Cost Variance, Projected Final
+  Profit while Active), then a "Project actions" card (Accept /
+  Mark as Completed). `Card`, `Button` and `StatusBadge` are reused;
+  ledger rows stack on mobile with 48px touch targets. The Dashboard
+  was verified as already complete and left unchanged. No calculations,
+  queries, routes or lifecycle rules changed.
+
 Not implemented yet: invoices, payments, reports. The dashboard shows
 simple running totals (all-time sums), not date-range or per-period
 metrics.
