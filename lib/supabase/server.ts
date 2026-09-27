@@ -6,10 +6,10 @@ type CookieToSet = { name: string; value: string; options: CookieOptions };
 
 /**
  * Supabase client for use in Server Components, Route Handlers, and
- * Server Actions. Wired to the Next.js cookie store so a future auth
- * implementation can read/write the session — but no session or query
- * logic is implemented in this sprint. Typed with Database now that the
- * profiles/customers schema exists.
+ * Server Actions. Wired to the Next.js cookie store so Server Components
+ * and Server Actions can read/write the session cookie (see
+ * lib/auth/actions.ts, and every /dashboard/* page's own
+ * supabase.auth.getUser() check). Typed with Database.
  *
  * Must be called fresh per request (it reads `cookies()`), not cached
  * at module scope.

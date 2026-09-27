@@ -4,11 +4,9 @@ import type { Database } from "@/types/supabase";
 /**
  * Supabase client for use in Client Components ("use client" files).
  *
- * The schema now exists (profiles, customers) so the client is typed
- * with Database for query autocompletion/checking, but no auth flows or
- * queries are wired up yet — that starts in a later sprint. Call this
- * inside a component/hook when that work starts, rather than
- * instantiating a client at module scope.
+ * Typed with Database for query autocompletion/checking. Call this
+ * inside a component/hook when it needs a browser-side client, rather
+ * than instantiating one at module scope.
  */
 export function createClient() {
   return createBrowserClient<Database>(

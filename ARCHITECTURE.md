@@ -281,3 +281,62 @@ Completed while Active). The page-local `Stat`, `SectionHeader` and
 `EntryRow` helpers are presentation-only and do no math; promote them to
 `components/` only if a second screen needs them. Comparison tables
 scroll inside their own `Card` so the page never scrolls sideways.
+
+## PWA / installability (Mini-Sprint 39)
+
+`app/manifest.ts` uses Next.js 15's file-based manifest convention
+(`MetadataRoute.Manifest`), auto-served at `/manifest.webmanifest` — no
+custom route handler. Fields are the minimum needed for installability:
+`name`/`short_name` ("Profitabilly"), `description` (matches
+`app/layout.tsx`'s `metadata.description`), `start_url: "/"`,
+`display: "standalone"`, `theme_color: "#0F172A"` (= `ink.DEFAULT` in
+`tailwind.config.ts`), `background_color: "#F8FAFC"` (= `paper`), and
+three icons (192, 512, 512 maskable).
+
+Icons live under `public/icons/`; there was no existing Profitabilly
+logo/icon in the repo, so the minimum assets were generated from the
+existing navy identity (a plain "P" mark) rather than designed — treat
+these as placeholders if a real logo exists elsewhere. `app/layout.tsx`
+adds `metadata.icons` (favicon + apple-touch-icon) and
+`metadata.appleWebApp` for iOS home-screen behavior, and a `viewport`
+export carrying `themeColor` (Next 15 moved `themeColor` out of
+`metadata`). No service worker was added: current Chrome/Android
+installability criteria (manifest + HTTPS + icons) don't require one,
+and this sprint's scope is installability, not offline support.
+
+## Project Profitability chart (Mini-Sprint 40)
+
+`app/dashboard/page.tsx` renders a `ProjectProfitabilityChart`
+(page-local, same convention as `Kpi` on the same page): a bar per
+project for Revenue, Costs and Profit, sized against the largest
+magnitude among all projects' Revenue/Costs/|Profit|. It is plain
+HTML/CSS/SVG-free — divs sized with inline `height` — so no charting
+dependency was added (none existed in `package.json`, and one wasn't
+judged necessary for a simple grouped bar chart). Per-project totals
+are computed with the exact same `sumCents` + group-by-`project_id`
+pattern the Projects list page (`app/dashboard/projects/page.tsx`)
+already uses; the Dashboard's `revenues`/`costs` queries now also
+select `project_id`, and its `projects` query also selects `id`/`name`,
+so this grouping has what it needs. No new financial calculation, no
+new query beyond those added fields, no new dependency. The chart is
+omitted entirely when the user has no projects, rather than shown
+empty.
+
+## Mini-Sprint 41 — Final MVP audit
+
+Full-repository audit (product flow, financial consistency across
+Dashboard/Projects/Project Details, lifecycle, auth/RLS, navigation,
+design system, responsive behavior, the Mini-Sprint 40 chart, the
+Mini-Sprint 39 PWA files, and code quality). No confirmed functional
+bug was found, so no business logic, query, route, RLS policy, or
+calculation was changed. The only changes were two stale code comments
+in `lib/supabase/server.ts` and `lib/supabase/client.ts` (left over
+from before auth/queries existed, and no longer accurate) — not a
+behavior change.
+
+Confirmed-intentional, not a bug: `app/dashboard/customers/page.tsx`,
+the Projects list, and the auth pages still use the pre-Mini-Sprint-36
+heading size/card markup rather than `components/Card.tsx`/`text-page`
+— see this file's Design system section and README's Status log,
+which already document that only Dashboard and Project Details were
+redesigned so far.

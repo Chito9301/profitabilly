@@ -58,6 +58,36 @@ construction, contractors, and other service businesses.
   heading, "Add Project" action in the header. Data queries and
   calculations are unchanged.
 
+- **Mini-Sprint 40** — Project Profitability chart on the Dashboard:
+  a grouped bar chart (Revenue / Costs / Profit per project), placed
+  between the KPI cards and the existing Projects card. Built with
+  plain HTML/CSS (no charting library) reusing `sumCents`/`formatCents`/
+  `profitToneClass` from `lib/finance/money.ts` and the same
+  group-by-`project_id` pattern already used on the Projects list page
+  — no new calculation, no new table, no new route. The Dashboard's
+  `projects`/`revenues`/`costs` queries now also select `id`/`name`/
+  `project_id` (previously just `status`/`amount`) so the existing
+  per-project totals can be shown; nothing else about those queries
+  changed. Every value is shown as text next to its bar, so the chart
+  never relies on color alone. Only shown when the user has at least
+  one project (no empty chart with invented data); responsive via a
+  single flex layout that fills the card on wide screens and scrolls
+  horizontally, without squeezing labels, once there are more projects
+  than fit.
+
+- **Mini-Sprint 39** — PWA / installable web app: `app/manifest.ts`
+  (Next.js 15's built-in manifest route, served at
+  `/manifest.webmanifest`) plus icons (`public/icons/icon-192.png`,
+  `icon-512.png`, `icon-512-maskable.png`), `public/apple-touch-icon.png`
+  and `public/favicon.ico`. `app/layout.tsx` links them via `metadata`
+  and sets `theme_color` via the `viewport` export. Uses the existing
+  `ink`/`paper` colors and product name/description — no new brand
+  identity, no redesign. No service worker: Chrome/Android installability
+  only needs a valid manifest + HTTPS + icons, and adding one would have
+  meant either a no-op file or venturing into caching, which this sprint
+  intentionally excludes (offline support is out of scope). No business
+  logic, routes, or existing screens were touched.
+
 - **Mini-Sprint 38** — Design completion (presentation only): Project
   Details redesigned to the same language as the Dashboard — header
   (name, status, customer, Edit), Profitability Check, Actual,

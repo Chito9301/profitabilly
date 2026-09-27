@@ -50,6 +50,163 @@ function Kpi({
   );
 }
 
+type ProjectBar = {
+  id: string;
+  name: string;
+  revenueCents: number;
+  costCents: number;
+  profitCents: number;
+};
+
+const BAR_HEIGHT_PX = 96;
+const CHART_LEGEND: Array<{ label: string; swatchClass: string }> = [
+  { label: "Revenue", swatchClass: "bg-ink-soft" },
+  { label: "Costs", swatchClass: "bg-warning" },
+  { label: "Profit", swatchClass: "bg-profit" },
+];
+
+// One Revenue/Costs/Profit bar. `cents` is only used to size and color
+// the bar; the exact value is always shown as text underneath by the
+// caller, so height/color are never the only way to read the amount.
+function Bar({
+  cents,
+  maxCents,
+  colorClass,
+  label,
+  currency,
+}: {
+  cents: number;
+  maxCents: number;
+  colorClass: string;
+  label: string;
+  currency: string;
+}) {
+  const magnitude = Math.abs(cents);
+  const heightPx =
+    maxCents === 0 ? 0 : Math.max((magnitude / maxCents) * BAR_HEIGHT_PX, magnitude === 0 ? 0 : 3);
+  return (
+    <div
+      title={`${label}: ${currency} ${formatCents(cents)}`}
+      className={`w-3 rounded-t sm:w-3.5 ${colorClass}`}
+      style={{ height: `${heightPx}px` }}
+    />
+  );
+}
+
+// Presentation only: renders bars from cents totals the page already
+// computed per project (see projectTotals below) — reuses formatCents/
+// profitToneClass, no new financial calculation. Single responsive
+// implementation: columns grow to fill the card on desktop (flex-1)
+// but never shrink past a readable minimum, so once there are enough
+// projects to exceed the card width the row scrolls horizontally
+// instead of squeezing labels — same behavior on mobile and desktop.
+function ProjectProfitabilityChart({
+  currency,
+  projects,
+}: {
+  currency: string;
+  projects: ProjectBar[];
+}) {
+  const maxCents = projects.reduce(
+    (max, p) =>
+      Math.max(max, p.revenueCents, p.costCents, Math.abs(p.profitCents)),
+    0,
+  );
+
+  return (
+    <Card>
+      <h2 id="project-profitability" className="text-lg font-medium tracking-tight">
+        Project Profitability
+      </h2>
+      <p id="project-profitability-desc" className="mt-1 text-sm text-muted">
+        Revenue, costs and profit by project ({currency})
+      </p>
+
+      <ul className="mt-4 flex flex-wrap gap-x-4 gap-y-1" aria-hidden="true">
+        {CHART_LEGEND.map((item) => (
+          <li key={item.label} className="flex items-center gap-1.5 text-xs text-muted">
+            <span className={`h-2.5 w-2.5 rounded-sm ${item.swatchClass}`} />
+            {item.label}
+          </li>
+        ))}
+      </ul>
+
+      <div
+        role="group"
+        aria-labelledby="project-profitability-desc"
+        tabIndex={0}
+        className="mt-4 flex gap-4 overflow-x-auto pb-1"
+      >
+        {projects.map((project) => (
+          <div
+            key={project.id}
+            className="flex min-w-[108px] flex-1 shrink-0 flex-col items-center gap-2 sm:min-w-[128px]"
+          >
+            <div
+              className="flex h-24 items-end justify-center gap-1.5 sm:gap-2"
+              style={{ height: `${BAR_HEIGHT_PX}px` }}
+            >
+              <Bar
+                cents={project.revenueCents}
+                maxCents={maxCents}
+                colorClass="bg-ink-soft"
+                label="Revenue"
+                currency={currency}
+              />
+              <Bar
+                cents={project.costCents}
+                maxCents={maxCents}
+                colorClass="bg-warning"
+                label="Costs"
+                currency={currency}
+              />
+              <Bar
+                cents={project.profitCents}
+                maxCents={maxCents}
+                colorClass={
+                  project.profitCents < 0 ? "bg-danger" : "bg-profit"
+                }
+                label="Profit"
+                currency={currency}
+              />
+            </div>
+
+            <dl className="w-full text-center text-[11px] leading-tight text-muted">
+              <div>
+                <dt className="inline">Rev </dt>
+                <dd className="inline tabular-nums">
+                  {formatCents(project.revenueCents)}
+                </dd>
+              </div>
+              <div>
+                <dt className="inline">Cost </dt>
+                <dd className="inline tabular-nums">
+                  {formatCents(project.costCents)}
+                </dd>
+              </div>
+              <div>
+                <dt className="inline">Profit </dt>
+                <dd
+                  className={`inline tabular-nums font-medium ${profitToneClass(project.profitCents)}`}
+                >
+                  {formatCents(project.profitCents)}
+                </dd>
+              </div>
+            </dl>
+
+            <p
+              className="w-full truncate text-center text-xs font-medium"
+              title={project.name}
+            >
+              {project.name}
+            </p>
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
 export default async function DashboardPage() {
   const supabase = await createClient();
   const {
@@ -70,22 +227,24 @@ export default async function DashboardPage() {
 
   const { data: projects } = await supabase
     .from("projects")
-    .select("status")
+    .select("id, name, status")
     .eq("user_id", user.id);
 
   // Scoped by user_id only, same reasoning as the Projects list
   // (Sprint 13): RLS's select policy on revenues/costs is
   // auth.uid() = user_id, so these can never include another user's
-  // rows. No per-project grouping needed here — the dashboard only
-  // needs the grand total across all of the user's projects.
+  // rows. project_id is selected (Mini-Sprint 40) so the Project
+  // Profitability chart can group the same rows per project below,
+  // exactly like the Projects list page already does — the grand
+  // total across all of the user's projects still just sums every row.
   const { data: revenues } = await supabase
     .from("revenues")
-    .select("amount")
+    .select("project_id, amount")
     .eq("user_id", user.id);
 
   const { data: costs } = await supabase
     .from("costs")
-    .select("amount")
+    .select("project_id, amount")
     .eq("user_id", user.id);
 
   const projectRows = projects ?? [];
@@ -109,6 +268,39 @@ export default async function DashboardPage() {
     (costs ?? []).map((c: { amount: string }) => c.amount),
   );
   const profitCents = revenueCents - costCents;
+
+  // Same grouping-by-project_id pattern as the Projects list page
+  // (app/dashboard/projects/page.tsx): a project with no rows in either
+  // map simply gets sumCents([]) = 0, never an error or an invented
+  // value.
+  const revenueAmountsByProject = new Map<string, string[]>();
+  for (const r of (revenues ?? []) as { project_id: string; amount: string }[]) {
+    const list = revenueAmountsByProject.get(r.project_id) ?? [];
+    list.push(r.amount);
+    revenueAmountsByProject.set(r.project_id, list);
+  }
+  const costAmountsByProject = new Map<string, string[]>();
+  for (const c of (costs ?? []) as { project_id: string; amount: string }[]) {
+    const list = costAmountsByProject.get(c.project_id) ?? [];
+    list.push(c.amount);
+    costAmountsByProject.set(c.project_id, list);
+  }
+
+  const projectBars: ProjectBar[] = (
+    projects ?? []
+  ).map((p: { id: string; name: string; status: string }) => {
+    const projectRevenueCents = sumCents(
+      revenueAmountsByProject.get(p.id) ?? [],
+    );
+    const projectCostCents = sumCents(costAmountsByProject.get(p.id) ?? []);
+    return {
+      id: p.id,
+      name: p.name,
+      revenueCents: projectRevenueCents,
+      costCents: projectCostCents,
+      profitCents: projectRevenueCents - projectCostCents,
+    };
+  });
   // Weighted overall margin: calculateMarginPercent(profit, revenue) is
   // the exact same function used per-project on the Projects list and
   // detail page — called here with the grand totals instead of one
@@ -171,6 +363,12 @@ export default async function DashboardPage() {
           />
         </dl>
       </section>
+
+      {totalProjects > 0 && (
+        <section aria-labelledby="project-profitability" className="mt-6">
+          <ProjectProfitabilityChart currency={currency} projects={projectBars} />
+        </section>
+      )}
 
       <section aria-labelledby="project-status" className="mt-6">
         <Card>

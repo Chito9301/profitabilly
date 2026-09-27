@@ -4,7 +4,7 @@ export default function HomePage() {
   return (
     <main
       className="flex min-h-dvh flex-col items-center justify-center px-6
-                 bg-[repeating-linear-gradient(to_bottom,transparent,transparent_39px,theme(colors.rule.DEFAULT)_39px,theme(colors.rule.DEFAULT)_40px)]"
+                 bg-[repeating-linear-gradient(to_bottom,transparent,transparent_39px,theme(colors.rule)_39px,theme(colors.rule)_40px)]"
     >
       {/*
         The repeating horizontal rule above is a deliberate nod to ledger
