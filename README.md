@@ -40,6 +40,23 @@ construction, contractors, and other service businesses.
   editing a project now returns to that project's detail page instead
   of the list, matching how Revenue/Cost/Estimated edits already
   behaved.
+- **Mini-Sprint 34** — Global navigation: `app/dashboard/layout.tsx` +
+  `components/DashboardNav.tsx` add a persistent Dashboard/Projects/
+  Customers nav bar to every `/dashboard/**` page.
+- **Mini-Sprint 35** — Design audit: the three near-identical local
+  `StatusBadge` functions were consolidated into
+  `components/StatusBadge.tsx`.
+- **Mini-Sprint 36** — Design-system foundation: approved navy palette
+  as role-named tokens, Inter + tabular figures, `Button` variants
+  (primary/secondary/destructive), shared form-control styles
+  (`components/fieldStyles.ts`), restyled nav and status badge,
+  48px mobile touch targets. Screens themselves are not redesigned yet.
+  See `ARCHITECTURE.md`'s Design system section.
+
+- **Mini-Sprint 37** — Dashboard redesign (presentation only): KPI cards
+  via the new `components/Card.tsx`, mobile/desktop layouts, "Dashboard"
+  heading, "Add Project" action in the header. Data queries and
+  calculations are unchanged.
 
 Not implemented yet: invoices, payments, reports. The dashboard shows
 simple running totals (all-time sums), not date-range or per-period
@@ -231,9 +248,13 @@ any of them.
 
 ## Navigation
 
-There is no shared header/nav component or app layout with navigation
-— `app/layout.tsx` is just the root HTML shell/fonts. Each page owns
-its own "back" link. The established convention: creating or editing
+As of Mini-Sprint 34, `app/dashboard/layout.tsx` wraps every
+`/dashboard/**` page with a persistent nav bar
+(`components/DashboardNav.tsx`, three links: Dashboard, Projects,
+Customers) — this is the only shared layout/nav in the app;
+`app/layout.tsx` itself is still just the root HTML shell/fonts. Each
+page additionally still owns its own local "back" link for immediate
+context. The established convention for those: creating or editing
 Revenue, Costs, Estimated Revenue, or Estimated Costs always returns to
 that project's detail page (`/dashboard/projects/[id]`); as of
 Mini-Sprint 32, editing the project itself follows the same

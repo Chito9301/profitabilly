@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { logOut } from "@/lib/auth/actions";
 import Button from "@/components/Button";
+import Card from "@/components/Card";
+import StatusBadge from "@/components/StatusBadge";
 import {
   sumCents,
   formatCents,
@@ -10,6 +12,43 @@ import {
   formatMarginPercent,
   profitToneClass,
 } from "@/lib/finance/money";
+
+// Presentational only: receives values that were already computed and
+// formatted above (sumCents/formatCents/calculateMarginPercent/
+// formatMarginPercent/profitToneClass) — it does no math. Local to this
+// page on purpose; promote it to components/ when Project Details needs
+// the same label/value pattern.
+//
+// Mobile: a compact label-left / value-right row, so long amounts like
+// "USD 245,300.00" never have to squeeze into a half-width column.
+// sm and up: label stacked above the value.
+function Kpi({
+  label,
+  currency,
+  value,
+  tone = "",
+  className = "",
+}: {
+  label: string;
+  currency?: string;
+  value: string;
+  tone?: string;
+  className?: string;
+}) {
+  return (
+    <Card
+      className={`flex items-baseline justify-between gap-3 sm:block ${className}`}
+    >
+      <dt className="text-sm text-muted">{label}</dt>
+      <dd className="flex flex-wrap items-baseline justify-end gap-x-1.5 sm:mt-1 sm:justify-start">
+        {currency && (
+          <span className="text-xs font-medium text-muted">{currency}</span>
+        )}
+        <span className={`text-xl font-semibold ${tone}`}>{value}</span>
+      </dd>
+    </Card>
+  );
+}
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -78,75 +117,112 @@ export default async function DashboardPage() {
   const marginPercent = calculateMarginPercent(profitCents, revenueCents);
 
   return (
-    <main className="mx-auto max-w-4xl px-6 py-12">
-      <div className="text-center">
-        <h1 className="text-3xl font-medium tracking-tight">
-          Welcome to Profitabilly
-        </h1>
-        {profile?.business_name && (
-          <p className="mt-2 text-muted">{profile.business_name}</p>
-        )}
-      </div>
-
-      <div className="mt-8 grid grid-cols-2 gap-4 rounded-md border border-rule p-4 text-center sm:grid-cols-4">
+    <main className="mx-auto max-w-4xl px-6 py-8 sm:py-12">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-xs text-muted">Total Revenue</p>
-          <p className="text-lg font-medium">
-            {currency} {formatCents(revenueCents)}
-          </p>
+          <h1 className="text-page font-semibold">Dashboard</h1>
+          {profile?.business_name && (
+            <p className="mt-1 text-sm text-muted">{profile.business_name}</p>
+          )}
         </div>
-        <div>
-          <p className="text-xs text-muted">Total Costs</p>
-          <p className="text-lg font-medium">
-            {currency} {formatCents(costCents)}
-          </p>
-        </div>
-        <div>
-          <p className="text-xs text-muted">Total Profit</p>
-          <p className={`text-lg font-medium ${profitToneClass(profitCents)}`}>
-            {currency} {formatCents(profitCents)}
-          </p>
-        </div>
-        <div>
-          <p className="text-xs text-muted">Average Margin</p>
-          <p className={`text-lg font-medium ${profitToneClass(marginPercent)}`}>
-            {formatMarginPercent(marginPercent)}
-          </p>
-        </div>
-      </div>
-
-      <div className="mt-4 grid grid-cols-3 gap-4 rounded-md border border-rule p-4 text-center">
-        <div>
-          <p className="text-xs text-muted">Total Projects</p>
-          <p className="text-lg font-medium">{totalProjects}</p>
-        </div>
-        <div>
-          <p className="text-xs text-muted">Active</p>
-          <p className="text-lg font-medium">{activeProjects}</p>
-        </div>
-        <div>
-          <p className="text-xs text-muted">Completed</p>
-          <p className="text-lg font-medium">{completedProjects}</p>
-        </div>
-      </div>
-
-      <div className="mt-8 flex flex-col items-center gap-2">
-        <Link
-          href="/dashboard/customers"
-          className="text-sm underline underline-offset-2"
+        <Button
+          href="/dashboard/projects/new"
+          variant="primary"
+          className="w-full sm:w-auto"
         >
-          Customers
-        </Link>
+          Add Project
+        </Button>
+      </header>
 
-        <Link
-          href="/dashboard/projects"
-          className="text-sm underline underline-offset-2"
-        >
-          Projects
-        </Link>
+      <section aria-labelledby="financial-summary" className="mt-6 sm:mt-8">
+        <h2 id="financial-summary" className="sr-only">
+          Financial summary
+        </h2>
+        {/* DOM order is the accounting flow (Revenue, Costs, Profit,
+            Margin), which is also the desktop row. Below lg, `order-*`
+            promotes Profit and Margin to the top, per the approved
+            mobile hierarchy. Cards are not interactive, so visual order
+            differing from DOM order doesn't affect keyboard focus. */}
+        <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <Kpi
+            label="Total Revenue"
+            currency={currency}
+            value={formatCents(revenueCents)}
+            className="order-3 lg:order-1"
+          />
+          <Kpi
+            label="Total Costs"
+            currency={currency}
+            value={formatCents(costCents)}
+            className="order-4 lg:order-2"
+          />
+          <Kpi
+            label="Total Profit"
+            currency={currency}
+            value={formatCents(profitCents)}
+            tone={profitToneClass(profitCents)}
+            className="order-1 lg:order-3"
+          />
+          <Kpi
+            label="Overall Margin"
+            value={formatMarginPercent(marginPercent)}
+            tone={profitToneClass(marginPercent)}
+            className="order-2 lg:order-4"
+          />
+        </dl>
+      </section>
 
-        <form action={logOut} className="mt-2">
-          <Button type="submit" variant="secondary">
+      <section aria-labelledby="project-status" className="mt-6">
+        <Card>
+          <div className="flex items-center justify-between gap-3">
+            <h2
+              id="project-status"
+              className="text-lg font-medium tracking-tight"
+            >
+              Projects
+            </h2>
+            <Link
+              href="/dashboard/projects"
+              className="inline-flex min-h-10 items-center text-sm font-medium underline underline-offset-2"
+            >
+              View all projects
+            </Link>
+          </div>
+          {/* Mobile: three compact rows. sm and up: three columns. The
+              Active/Completed labels reuse StatusBadge, so they look
+              exactly like the badges on the Projects pages. */}
+          <dl className="mt-2 divide-y divide-rule sm:mt-3 sm:grid sm:grid-cols-3 sm:gap-3 sm:divide-y-0">
+            <div className="flex items-center justify-between py-2 sm:block sm:py-0">
+              <dt className="text-sm text-muted">Total Projects</dt>
+              <dd className="text-xl font-semibold sm:mt-1">{totalProjects}</dd>
+            </div>
+            <div className="flex items-center justify-between py-2 sm:block sm:py-0">
+              <dt>
+                <StatusBadge status="Active" />
+              </dt>
+              <dd className="text-xl font-semibold sm:mt-1">
+                {activeProjects}
+              </dd>
+            </div>
+            <div className="flex items-center justify-between py-2 sm:block sm:py-0">
+              <dt>
+                <StatusBadge status="Completed" />
+              </dt>
+              <dd className="text-xl font-semibold sm:mt-1">
+                {completedProjects}
+              </dd>
+            </div>
+          </dl>
+        </Card>
+      </section>
+
+      <div className="mt-10 border-t border-rule pt-6">
+        <form action={logOut}>
+          <Button
+            type="submit"
+            variant="secondary"
+            className="w-full sm:w-auto"
+          >
             Log out
           </Button>
         </form>

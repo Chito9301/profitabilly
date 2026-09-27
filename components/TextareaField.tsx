@@ -1,4 +1,5 @@
 import type { TextareaHTMLAttributes } from "react";
+import { FIELD_CONTROL_STYLES, FIELD_LABEL_STYLES } from "./fieldStyles";
 
 type TextareaFieldProps = TextareaHTMLAttributes<HTMLTextAreaElement> & {
   label: string;
@@ -14,14 +15,14 @@ export default function TextareaField({
 
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={fieldId} className="text-sm text-ink">
+      <label htmlFor={fieldId} className={FIELD_LABEL_STYLES}>
         {label}
       </label>
       <textarea
         id={fieldId}
         name={name}
         rows={3}
-        className="rounded-md border border-rule bg-paper px-3 py-2 text-sm text-ink outline-none focus-visible:border-signal"
+        className={FIELD_CONTROL_STYLES}
         {...props}
       />
     </div>

@@ -1,16 +1,21 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import Link from "next/link";
 
-type ButtonVariant = "primary" | "secondary";
+type ButtonVariant = "primary" | "secondary" | "destructive";
 
 const VARIANT_STYLES: Record<ButtonVariant, string> = {
-  primary: "bg-signal text-ink hover:bg-signal/90",
+  primary: "bg-ink text-white hover:bg-ink-hover",
   secondary:
-    "bg-transparent text-ink border border-ink/30 hover:border-ink/60",
+    "border border-rule-strong bg-surface text-ink hover:border-ink-soft hover:bg-paper",
+  // Filled red for irreversible actions. No screen uses it yet — the
+  // existing Delete buttons are small text links (see ARCHITECTURE.md).
+  destructive: "bg-danger text-white hover:bg-danger/90",
 };
 
+// min-h-12 = 48px touch target on mobile; 40px from `sm` up so desktop
+// buttons aren't oversized.
 const BASE_STYLES =
-  "inline-flex items-center justify-center rounded-md px-6 py-3 text-sm font-medium tracking-normal transition-colors duration-150 disabled:opacity-50 disabled:pointer-events-none";
+  "inline-flex min-h-12 items-center justify-center rounded-lg px-6 py-2 text-sm font-medium tracking-normal transition-colors duration-150 disabled:opacity-50 disabled:pointer-events-none sm:min-h-10";
 
 type CommonProps = {
   variant?: ButtonVariant;

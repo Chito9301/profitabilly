@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import TextField from "@/components/TextField";
 import SelectField from "@/components/SelectField";
 import Button from "@/components/Button";
+import { FIELD_CONTROL_STYLES, FIELD_LABEL_STYLES } from "@/components/fieldStyles";
 import type { ProjectFormState } from "@/lib/projects/actions";
 import { STATUSES } from "@/lib/projects/constants";
 import type { Project } from "@/types/supabase";
@@ -45,7 +46,7 @@ export default function ProjectForm({
       />
 
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="customerId" className="text-sm text-ink">
+        <label htmlFor="customerId" className={FIELD_LABEL_STYLES}>
           Customer
         </label>
         <select
@@ -53,7 +54,7 @@ export default function ProjectForm({
           name="customerId"
           required
           defaultValue={defaultValues?.customer_id ?? ""}
-          className="rounded-md border border-rule bg-paper px-3 py-2 text-sm text-ink outline-none focus-visible:border-signal"
+          className={FIELD_CONTROL_STYLES}
         >
           <option value="" disabled>
             Select a customer
@@ -75,7 +76,7 @@ export default function ProjectForm({
       />
 
       {state.error && (
-        <p role="alert" className="text-sm text-red-700">
+        <p role="alert" className="text-sm text-danger">
           {state.error}
         </p>
       )}

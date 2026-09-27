@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import Button from "@/components/Button";
+import StatusBadge from "@/components/StatusBadge";
 import DeleteCustomerButton from "./DeleteCustomerButton";
 import type { Customer } from "@/types/supabase";
 
@@ -11,19 +12,6 @@ function formatDate(iso: string) {
     month: "short",
     day: "numeric",
   });
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const isActive = status === "Active";
-  return (
-    <span
-      className={`inline-flex rounded-full px-2 py-0.5 text-xs ${
-        isActive ? "bg-profit/10 text-profit" : "bg-ink/5 text-muted"
-      }`}
-    >
-      {status}
-    </span>
-  );
 }
 
 const SUCCESS_MESSAGES: Record<string, string> = {
@@ -77,7 +65,7 @@ export default async function CustomersPage({
       {successMessage && (
         <p
           role="status"
-          className="mb-6 rounded-md bg-profit/10 px-4 py-2 text-sm text-profit"
+          className="mb-6 rounded-md bg-profit/10 px-4 py-2 text-sm text-profit-strong"
         >
           {successMessage}
         </p>

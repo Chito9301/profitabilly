@@ -7,13 +7,16 @@
     color-scheme: light;
   }
 
+  /* tabular-nums: this is a numbers-first app, so digits get equal
+     widths everywhere (money columns in tables line up, totals don't
+     jitter). Inter supports the `tnum` feature this relies on. */
   body {
-    @apply bg-paper text-ink antialiased;
+    @apply bg-paper text-ink antialiased tabular-nums;
   }
 
   /* Visible keyboard focus everywhere, instead of only on some elements. */
   :focus-visible {
-    outline: 2px solid theme("colors.signal");
+    outline: 2px solid theme("colors.ink.DEFAULT");
     outline-offset: 2px;
   }
 }

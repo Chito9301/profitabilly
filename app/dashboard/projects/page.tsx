@@ -2,23 +2,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import Button from "@/components/Button";
+import StatusBadge from "@/components/StatusBadge";
 import DeleteProjectButton from "./DeleteProjectButton";
 import { sumCents, formatCents, calculateMarginPercent, formatMarginPercent, profitToneClass } from "@/lib/finance/money";
 import type { Project } from "@/types/supabase";
-
-function StatusBadge({ status }: { status: string }) {
-  const styles =
-    status === "Active"
-      ? "bg-profit/10 text-profit"
-      : status === "Completed"
-        ? "bg-signal/10 text-signal"
-        : "bg-ink/5 text-muted";
-  return (
-    <span className={`inline-flex rounded-full px-2 py-0.5 text-xs ${styles}`}>
-      {status}
-    </span>
-  );
-}
 
 const SUCCESS_MESSAGES: Record<string, string> = {
   created: "Project added.",
@@ -132,7 +119,7 @@ export default async function ProjectsPage({
       {successMessage && (
         <p
           role="status"
-          className="mb-6 rounded-md bg-profit/10 px-4 py-2 text-sm text-profit"
+          className="mb-6 rounded-md bg-profit/10 px-4 py-2 text-sm text-profit-strong"
         >
           {successMessage}
         </p>

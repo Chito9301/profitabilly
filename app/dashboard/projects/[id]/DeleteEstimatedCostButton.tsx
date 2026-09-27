@@ -33,13 +33,13 @@ export default function DeleteEstimatedCostButton({
         <button
           type="submit"
           disabled={isPending}
-          className="text-sm text-red-700 underline underline-offset-2 disabled:opacity-50"
+          className="text-sm text-danger underline underline-offset-2 disabled:opacity-50"
         >
           {isPending ? "Deleting…" : "Delete"}
         </button>
       </form>
       {state.error && (
-        <p role="alert" className="mt-1 text-xs text-red-700">
+        <p role="alert" className="mt-1 text-xs text-danger">
           {state.error}
         </p>
       )}

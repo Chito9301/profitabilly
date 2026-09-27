@@ -25,12 +25,12 @@ export default async function LoginPage({
         </h1>
 
         {authError === "recovery_link_invalid" && (
-          <p role="alert" className="mt-6 text-center text-sm text-red-700">
+          <p role="alert" className="mt-6 text-center text-sm text-danger">
             This password reset link is invalid or has expired. Request a new one.
           </p>
         )}
         {authError === "recovery_session_missing" && (
-          <p role="alert" className="mt-6 text-center text-sm text-red-700">
+          <p role="alert" className="mt-6 text-center text-sm text-danger">
             Your recovery session has expired. Request a new password reset link.
           </p>
         )}

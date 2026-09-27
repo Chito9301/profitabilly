@@ -47,8 +47,8 @@ export function formatMarginPercent(percent: number | null): string {
 
 // Presentation only — maps an already-computed value (Profit cents, or
 // a Margin percent, independently) to the existing color tokens used
-// elsewhere in the app: `profit` (green, already named for exactly
-// this) for positive, the same `text-red-700` already used for error
+// elsewhere in the app: `profit-strong` (the contrast-safe text variant
+// of the approved `profit` green) for positive, the same `text-danger` already used for error
 // states for negative, and no color (falls back to the default text
 // color) for zero or null (N/A) — i.e. a neutral read, the same as how
 // Revenue/Costs already look. Does not touch the value itself, and a
@@ -56,5 +56,5 @@ export function formatMarginPercent(percent: number | null): string {
 // formatCents/formatMarginPercent, so color is never the only signal.
 export function profitToneClass(value: number | null): string {
   if (value === null || value === 0) return "";
-  return value > 0 ? "text-profit" : "text-red-700";
+  return value > 0 ? "text-profit-strong" : "text-danger";
 }

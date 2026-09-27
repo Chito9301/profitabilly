@@ -24,7 +24,7 @@ export default function AcceptProjectButton({
         </Button>
       </form>
       {state.error && (
-        <p role="alert" className="mt-1 text-xs text-red-700">
+        <p role="alert" className="mt-1 text-xs text-danger">
           {state.error}
         </p>
       )}

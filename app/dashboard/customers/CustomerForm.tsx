@@ -76,7 +76,7 @@ export default function CustomerForm({
       />
 
       {state.error && (
-        <p role="alert" className="text-sm text-red-700">
+        <p role="alert" className="text-sm text-danger">
           {state.error}
         </p>
       )}
