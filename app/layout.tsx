@@ -15,7 +15,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Profitabilly",
+  title: "JobWorth",
   description:
     "Know exactly how profitable every project or job really is.",
   // PWA installability (Mini-Sprint 39). manifest.webmanifest is served
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    title: "Profitabilly",
+    title: "JobWorth",
     statusBarStyle: "default",
   },
 };
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
 // themeColor/background moved out of `metadata` and into `viewport` per
 // Next.js 15 (the old metadata.themeColor field is deprecated there).
 export const viewport: Viewport = {
-  themeColor: "#0F172A",
+  themeColor: "#0B1F46",
 };
 
 export default function RootLayout({

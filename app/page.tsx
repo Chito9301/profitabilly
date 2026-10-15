@@ -13,7 +13,7 @@ export default function HomePage() {
       */}
       <div className="flex max-w-md flex-col items-center text-center">
         <h1 className="text-4xl font-medium tracking-tight sm:text-5xl">
-          Profitabilly
+          JobWorth
         </h1>
 
         <p className="mt-4 text-balance text-base text-muted sm:text-lg">

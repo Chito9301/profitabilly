@@ -1,6 +1,7 @@
 import type { Config } from "tailwindcss";
 
-// Design tokens for Profitabilly (approved direction, Mini-Sprint 36):
+// Design tokens for JobWorth (approved direction, Mini-Sprint 36;
+// palette aligned with the JobWorth brand in Mini-Sprint 44):
 // minimalist, professional, numbers-first. Token NAMES are role-based
 // and stable (ink, paper, rule, profit, muted, danger…), so pages that
 // already use them pick up the new values without being edited.
@@ -19,11 +20,11 @@ const config: Config = {
       colors: {
         // Primary navy: text, primary buttons, focus ring.
         ink: {
-          DEFAULT: "#0F172A",
+          DEFAULT: "#0B1F46", // JobWorth navy
           hover: "#1E293B", // secondary slate — primary button hover
           soft: "#334155", // slate — strong secondary text (inactive nav)
         },
-        paper: "#F8FAFC", // page background
+        paper: "#F5F7FA", // page background
         surface: "#FFFFFF", // cards, inputs, nav bar
         rule: {
           DEFAULT: "#E2E8F0", // subtle dividers and card borders
@@ -38,7 +39,7 @@ const config: Config = {
         profit: {
           DEFAULT: "#16A34A",
           strong: "#15803D",
-          bright: "#10B981", // emerald — approved, reserved for accents/charts, unused so far
+          bright: "#20C997", // JobWorth brand green — decorative accents only (sidebar active marker); too light for text
         },
         danger: "#DC2626", // negative values, errors, destructive actions (4.8:1 as text)
         // Warning. DEFAULT (#D97706) is ~3.2:1 as text on white — use it for

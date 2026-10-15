@@ -5,21 +5,21 @@ import type { MetadataRoute } from "next";
 // automatically, no custom route handler needed.
 //
 // Identity and colors match the existing app exactly:
-// - name/short_name: "Profitabilly" (app/layout.tsx metadata.title)
+// - name/short_name: "JobWorth" (app/layout.tsx metadata.title)
 // - description: existing product description (app/layout.tsx metadata.description)
-// - theme_color: "#0F172A" = tailwind.config.ts colors.ink.DEFAULT
-// - background_color: "#F8FAFC" = tailwind.config.ts colors.paper
+// - theme_color: "#0B1F46" = tailwind.config.ts colors.ink.DEFAULT
+// - background_color: "#F5F7FA" = tailwind.config.ts colors.paper
 // Only the fields required for installability are included.
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Profitabilly",
-    short_name: "Profitabilly",
+    name: "JobWorth",
+    short_name: "JobWorth",
     description:
       "Know exactly how profitable every project or job really is.",
     start_url: "/",
     display: "standalone",
-    theme_color: "#0F172A",
-    background_color: "#F8FAFC",
+    theme_color: "#0B1F46",
+    background_color: "#F5F7FA",
     icons: [
       {
         src: "/icons/icon-192.png",

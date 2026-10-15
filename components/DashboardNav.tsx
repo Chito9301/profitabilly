@@ -1,11 +1,12 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 // The three main sections of the app. Keep this list small and flat —
-// see ARCHITECTURE.md's Navigation section for why (no sidebar, no
-// breadcrumbs, no dynamic nav system — that's a later stage).
+// see ARCHITECTURE.md's Navigation section for why (no breadcrumbs, no
+// dynamic nav system — that's a later stage).
 const LINKS = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/dashboard/projects", label: "Projects" },
@@ -22,48 +23,79 @@ function isActive(pathname: string, href: string): boolean {
 }
 
 // mailto link is intentionally not part of LINKS: it's not an app
-// section (no route, no active-state underline), just a quiet way to
+// section (no route, no active-state marker), just a quiet way to
 // reach the developer. Body is omitted (not set to ""), which is the
 // standard way to leave a mailto's body empty for the user to fill in.
 const FEEDBACK_MAILTO =
   "mailto:miproyecto353@gmail.com?subject=" +
-  encodeURIComponent("Profitabilly Feedback");
+  encodeURIComponent("JobWorth Feedback");
 
-// The active section is marked by an underline bar AND darker text (never
-// color alone), plus aria-current for screen readers. -mb-px lets the bar
-// sit on the nav's own bottom border. min-h-12 = 48px touch target on
-// mobile, 40px from `sm` up.
+// One component, two layouts (Mini-Sprint 44), switched with CSS only so
+// the links, active-state logic and Feedback link exist exactly once:
+// - below `lg` (phones, tablets): a compact top bar — brand row, then a
+//   row with the three sections and Feedback at the right (the same
+//   arrangement as before). The active section has an underline bar.
+// - from `lg` up: a left sidebar, sticky at full viewport height — brand
+//   on top, sections stacked, Feedback quiet at the bottom. The active
+//   section has a left marker (brand green) and a tinted fill.
+// The active section is never marked by color alone: text turns darker
+// and heavier, there is a marker/underline, and aria-current is set.
+// min-h-11 = 44px touch target on mobile; 40px from `lg` up.
 export default function DashboardNav() {
   const pathname = usePathname();
 
   return (
-    <nav aria-label="Main" className="border-b border-rule bg-surface">
-      <div className="mx-auto flex max-w-4xl items-center gap-6 px-6 text-sm">
-        {LINKS.map(({ href, label }) => {
-          const active = isActive(pathname, href);
-          return (
-            <Link
-              key={href}
-              href={href}
-              aria-current={active ? "page" : undefined}
-              className={`-mb-px inline-flex min-h-12 items-center border-b-2 font-medium transition-colors sm:min-h-10 ${
-                active
-                  ? "border-ink text-ink"
-                  : "border-transparent text-ink-soft hover:text-ink"
-              }`}
-            >
-              {label}
-            </Link>
-          );
-        })}
+    <nav
+      aria-label="Main"
+      className="border-b border-rule bg-surface lg:sticky lg:top-0 lg:flex lg:h-dvh lg:w-56 lg:shrink-0 lg:flex-col lg:border-b-0 lg:border-r"
+    >
+      <Link
+        href="/dashboard"
+        className="flex items-center gap-2.5 px-6 pb-1 pt-3 lg:px-5 lg:pb-4 lg:pt-6"
+      >
+        {/* Decorative: the adjacent text already names the product. */}
+        <Image
+          src="/icons/icon-192.png"
+          alt=""
+          width={28}
+          height={28}
+          unoptimized
+          className="h-7 w-7 shrink-0 lg:h-8 lg:w-8"
+        />
+        <span className="text-base font-semibold tracking-tight text-ink lg:text-lg">
+          JobWorth
+        </span>
+      </Link>
+
+      <div className="flex items-center gap-6 overflow-x-auto px-6 text-sm lg:flex-1 lg:flex-col lg:items-stretch lg:gap-0 lg:overflow-visible lg:px-3 lg:pb-4">
+        <div className="flex items-center gap-6 lg:flex-col lg:items-stretch lg:gap-1">
+          {LINKS.map(({ href, label }) => {
+            const active = isActive(pathname, href);
+            return (
+              <Link
+                key={href}
+                href={href}
+                aria-current={active ? "page" : undefined}
+                className={`inline-flex min-h-11 items-center border-b-2 font-medium transition-colors lg:min-h-10 lg:rounded-lg lg:border-b-0 lg:border-l-2 lg:px-3 ${
+                  active
+                    ? "border-ink text-ink lg:border-profit-bright lg:bg-ink/5"
+                    : "border-transparent text-ink-soft hover:text-ink lg:hover:bg-ink/5"
+                }`}
+              >
+                {label}
+              </Link>
+            );
+          })}
+        </div>
 
         {/* Small and quiet on purpose (Mini-Sprint 43): smaller text,
-            muted color, no bottom-border indicator, no aria-current —
-            it should read as a minor utility link, not a fourth nav
-            section. ml-auto keeps it out of the way on the right. */}
+            muted color, no active marker, no aria-current — it should
+            read as a minor utility link, not a fourth nav section.
+            ml-auto pushes it right on the top bar; lg:mt-auto pins it to
+            the bottom of the sidebar. */}
         <a
           href={FEEDBACK_MAILTO}
-          className="ml-auto inline-flex min-h-12 shrink-0 items-center gap-1 text-xs text-muted transition-colors hover:text-ink-soft sm:min-h-10"
+          className="ml-auto inline-flex min-h-11 shrink-0 items-center gap-1 text-xs text-muted transition-colors hover:text-ink-soft lg:ml-0 lg:mt-auto lg:min-h-10 lg:px-3"
         >
           <svg
             aria-hidden="true"

@@ -13,10 +13,14 @@ export default function DashboardLayout({
 }: {
   children: ReactNode;
 }) {
+  // Mini-Sprint 44: from `lg` up the nav is a left sidebar and the page
+  // sits to its right; below `lg` the nav is a top bar above the page
+  // (the wrapper only becomes a row at `lg`). min-w-0 lets wide content
+  // (tables) scroll inside its own card instead of widening the page.
   return (
-    <>
+    <div className="min-h-dvh lg:flex">
       <DashboardNav />
-      {children}
-    </>
+      <div className="min-w-0 flex-1">{children}</div>
+    </div>
   );
 }

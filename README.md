@@ -1,7 +1,8 @@
-# Profitabilly
+# JobWorth
 
-Profitabilly is a SaaS for tracking project and job profitability. Users log
-revenue and costs against each project or job, and Profitabilly calculates
+JobWorth (formerly Profitabilly) is a SaaS for tracking project and job
+profitability. Users log revenue and costs against each project or job, and
+JobWorth calculates
 profit and profit margin — for agencies, consultants, freelancers,
 construction, contractors, and other service businesses.
 
@@ -57,6 +58,19 @@ construction, contractors, and other service businesses.
   via the new `components/Card.tsx`, mobile/desktop layouts, "Dashboard"
   heading, "Add Project" action in the header. Data queries and
   calculations are unchanged.
+
+- **Mini-Sprint 44** — Rebrand to **JobWorth** and sidebar navigation.
+  Visible brand, page title, PWA name and the homepage heading now say
+  JobWorth; icons (favicon, PWA 192/512/maskable, apple-touch) were
+  regenerated from the supplied J reference image; the palette tokens in
+  `tailwind.config.ts` were aligned with the brand (`ink` `#0B1F46`,
+  `paper` `#F5F7FA`, `profit-bright` `#20C997`); and
+  `components/DashboardNav.tsx` is now a left sidebar from the `lg`
+  breakpoint up and a compact top bar below it (same links, routes and
+  active-state logic). The Feedback mailto subject is now
+  "JobWorth Feedback". No change to calculations, queries, database,
+  RLS or auth. Technical names (npm package name `profitabilly`, repo
+  folder) were intentionally left as they are.
 
 - **Mini-Sprint 43** — Feedback link: a small "Feedback" `mailto:`
   link added to `components/DashboardNav.tsx`, to the right of

@@ -1,7 +1,7 @@
 # Architecture
 
 This document describes the actual, current architecture of
-Profitabilly — for a human developer or an AI coding agent picking up
+JobWorth (formerly Profitabilly) — for a human developer or an AI coding agent picking up
 this codebase. It reflects what the code does today, not a target
 design. See `README.md` first for stack, setup, and a feature-level
 status list; this file goes one layer deeper: how things fit together,
@@ -107,11 +107,17 @@ conditional rendering in `app/dashboard/projects/[id]/page.tsx`.
 ## Navigation
 
 As of Mini-Sprint 34, `app/dashboard/layout.tsx` wraps every route
-under `/dashboard/**` with a persistent nav bar
+under `/dashboard/**` with a persistent nav
 (`components/DashboardNav.tsx`; Dashboard/Projects/Customers,
 highlights the active section via `usePathname()`) — this is the only
 shared layout/nav in the app; `app/layout.tsx` only sets up fonts and
-metadata. Each page additionally still renders its own local back-link.
+metadata. As of Mini-Sprint 44 the same component renders a left
+sidebar from the `lg` breakpoint up (brand on top, sections stacked,
+Feedback at the bottom; the page sits to its right) and a compact top
+bar below `lg` — one set of links, switched with CSS only, so there is
+no duplicated nav logic. The breakpoint is `lg` rather than `md` because
+pages use `sm:`/`md:` rules keyed to viewport width; a sidebar at `md`
+would squeeze their content area. Each page additionally still renders its own local back-link.
 The one convention in place for those: a create/edit form for anything
 that belongs to a project (Revenue, Costs, Estimated Revenue,
 Estimated Costs, and — as of Mini-Sprint 32 — the project itself) both
@@ -132,17 +138,17 @@ future palette change without being edited.
 
 | Token | Hex | Use |
 |---|---|---|
-| `ink` | `#0F172A` | primary navy: text, primary button, focus ring |
+| `ink` | `#0B1F46` | JobWorth navy: text, primary button, focus ring |
 | `ink-hover` | `#1E293B` | primary button hover |
 | `ink-soft` | `#334155` | strong secondary text (inactive nav) |
-| `paper` | `#F8FAFC` | page background |
+| `paper` | `#F5F7FA` | page background |
 | `surface` | `#FFFFFF` | inputs, nav bar, (future) cards |
 | `rule` | `#E2E8F0` | subtle dividers and card borders |
 | `rule-strong` | `#8390A5` | form-control / secondary-button boundary (~3.2:1) |
 | `muted` | `#64748B` | secondary text (4.6:1 on `paper`; not for tinted fills) |
 | `profit` | `#16A34A` | positive: fills, tints, borders |
 | `profit-strong` | `#15803D` | positive **as text** (~5:1) |
-| `profit-bright` | `#10B981` | approved emerald accent — reserved, unused so far |
+| `profit-bright` | `#20C997` | JobWorth brand green — decorative accent only (sidebar active marker); too light for text |
 | `danger` | `#DC2626` | negative values, errors, destructive actions |
 | `warning` | `#D97706` | attention: fills/borders/icons (not yet used) |
 | `warning-strong` | `#B45309` | warning as readable text |
@@ -208,8 +214,11 @@ the page on focus below 16px) and `sm:text-sm` above.
   and it gets the red border/ring — no new prop.
 - **`StatusBadge`** — Active = green tint, Completed = navy tint,
   anything else (Archived) = outlined gray. Status logic untouched.
-- **`DashboardNav`** — white bar, underline-bar active state,
-  `aria-label="Main"`, `aria-current="page"`. Routes/structure unchanged.
+- **`DashboardNav`** — left sidebar from `lg` up (active = left green
+  marker + tinted fill), compact white top bar with underline-bar active
+  state below `lg`; brand mark + "JobWorth" on top, Feedback quiet at the
+  bottom/right. `aria-label="Main"`, `aria-current="page"`. Routes and
+  links unchanged.
 - **`Card`** *(new in Mini-Sprint 37, `components/Card.tsx`)* — presentation
   only: `rounded-xl border border-rule bg-surface p-4` on a plain `<div>`;
   `className` is appended for layout only (there is no class-merging
@@ -287,16 +296,20 @@ scroll inside their own `Card` so the page never scrolls sideways.
 `app/manifest.ts` uses Next.js 15's file-based manifest convention
 (`MetadataRoute.Manifest`), auto-served at `/manifest.webmanifest` — no
 custom route handler. Fields are the minimum needed for installability:
-`name`/`short_name` ("Profitabilly"), `description` (matches
+`name`/`short_name` ("JobWorth"), `description` (matches
 `app/layout.tsx`'s `metadata.description`), `start_url: "/"`,
-`display: "standalone"`, `theme_color: "#0F172A"` (= `ink.DEFAULT` in
-`tailwind.config.ts`), `background_color: "#F8FAFC"` (= `paper`), and
+`display: "standalone"`, `theme_color: "#0B1F46"` (= `ink.DEFAULT` in
+`tailwind.config.ts`), `background_color: "#F5F7FA"` (= `paper`), and
 three icons (192, 512, 512 maskable).
 
-Icons live under `public/icons/`; there was no existing Profitabilly
-logo/icon in the repo, so the minimum assets were generated from the
-existing navy identity (a plain "P" mark) rather than designed — treat
-these as placeholders if a real logo exists elsewhere. `app/layout.tsx`
+Icons live under `public/icons/`. As of Mini-Sprint 44 they (and
+`public/favicon.ico` and `public/apple-touch-icon.png`) are derived from
+the supplied JobWorth reference image (navy rounded square, white J,
+green accent): 192/512 keep the rounded shape with transparent corners,
+the maskable and apple-touch versions are full-bleed navy with the J
+inside the maskable safe zone. They are raster copies of the reference —
+replace them if a vector master is produced. The nav also reuses
+`icon-192.png` as the brand mark. `app/layout.tsx`
 adds `metadata.icons` (favicon + apple-touch-icon) and
 `metadata.appleWebApp` for iOS home-screen behavior, and a `viewport`
 export carrying `themeColor` (Next 15 moved `themeColor` out of
@@ -367,7 +380,7 @@ sprint's scope.
 ## Feedback link (Mini-Sprint 43)
 
 `components/DashboardNav.tsx` renders one extra `<a>` after the mapped
-`LINKS`, pushed right with `ml-auto`: `href="mailto:miproyecto353@gmail.com?subject=Profitabilly%20Feedback"`
+`LINKS`, pushed right with `ml-auto`: `href="mailto:miproyecto353@gmail.com?subject=JobWorth%20Feedback"`
 (subject built with `encodeURIComponent`, body left unset — the standard
 way to leave a mailto body empty). Styled smaller/muted (`text-xs
 text-muted`) with no bottom-border active state and no `aria-current`,
