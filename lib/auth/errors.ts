@@ -1,32 +1,40 @@
+import type { Messages } from "@/lib/i18n/messages";
+
 /**
  * Supabase (GoTrue) returns human-readable but internal-sounding error
  * strings. We never show those directly — map the ones we expect to
  * plain copy, and fall back to a generic message for anything else
  * (including real database errors) so nothing technical leaks to users.
  */
-export function friendlyAuthError(message: string): string {
+// `t` supplies the user-facing text in the active language
+// (Mini-Sprint 48). The matching conditions below are unchanged and still
+// look for Supabase's English messages.
+export function friendlyAuthError(
+  message: string,
+  t: Messages["auth"]["errors"],
+): string {
   const m = message.toLowerCase();
 
   if (m.includes("invalid login credentials")) {
-    return "That email or password is incorrect.";
+    return t.incorrectCredentials;
   }
   if (m.includes("already registered") || m.includes("already exists")) {
-    return "An account with that email already exists. Try logging in instead.";
+    return t.accountExists;
   }
   if (m.includes("password")) {
     // Covers Supabase's various "Password should be at least N characters" /
     // "password is too weak" style messages.
-    return "Password must be at least 6 characters.";
+    return t.passwordMin;
   }
   if (m.includes("email") && (m.includes("invalid") || m.includes("format"))) {
-    return "Enter a valid email address.";
+    return t.invalidEmail;
   }
   if (m.includes("email not confirmed")) {
-    return "Please confirm your email address before logging in.";
+    return t.confirmEmail;
   }
   if (m.includes("rate limit")) {
-    return "Too many attempts. Please wait a moment and try again.";
+    return t.rateLimit;
   }
 
-  return "Something went wrong. Please try again.";
+  return t.generic;
 }

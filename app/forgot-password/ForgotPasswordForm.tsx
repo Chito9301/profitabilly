@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import Button from "@/components/Button";
 import TextField from "@/components/TextField";
 import { requestPasswordReset, type AuthFormState } from "@/lib/auth/actions";
+import { useI18n } from "@/lib/i18n/provider";
 
 const initialState: AuthFormState = {};
 
@@ -12,6 +13,7 @@ export default function ForgotPasswordForm() {
     requestPasswordReset,
     initialState,
   );
+  const t = useI18n().messages.auth;
 
   if (state.message) {
     return (
@@ -24,7 +26,7 @@ export default function ForgotPasswordForm() {
   return (
     <form action={formAction} className="mt-8 flex flex-col gap-4">
       <TextField
-        label="Email"
+        label={t.fields.email}
         name="email"
         type="email"
         required
@@ -36,7 +38,7 @@ export default function ForgotPasswordForm() {
         </p>
       )}
       <Button type="submit" variant="primary" disabled={isPending} className="mt-2 w-full">
-        {isPending ? "Sending…" : "Send reset link"}
+        {isPending ? t.forgot.submitting : t.forgot.submit}
       </Button>
     </form>
   );

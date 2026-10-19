@@ -8,7 +8,15 @@
 //   Completed → navy tint   (ink)
 //   anything else (Archived, or any unrecognized value) → outlined gray
 // Text colors are the contrast-safe variants (see tailwind.config.ts).
-export default function StatusBadge({ status }: { status: string }) {
+// `label` (Mini-Sprint 49) is optional display text; colors still depend on
+// the stored `status` value, and callers that omit it render the raw value.
+export default function StatusBadge({
+  status,
+  label,
+}: {
+  status: string;
+  label?: string;
+}) {
   const styles =
     status === "Active"
       ? "bg-profit/10 text-profit-strong"
@@ -19,7 +27,7 @@ export default function StatusBadge({ status }: { status: string }) {
     <span
       className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${styles}`}
     >
-      {status}
+      {label ?? status}
     </span>
   );
 }

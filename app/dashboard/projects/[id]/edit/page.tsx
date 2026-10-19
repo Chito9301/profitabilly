@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { updateProject } from "@/lib/projects/actions";
+import { getMessages } from "@/lib/i18n/server";
 import ProjectForm from "../../ProjectForm";
 
 export default async function EditProjectPage({
@@ -36,24 +37,27 @@ export default async function EditProjectPage({
     .eq("user_id", user.id)
     .order("name", { ascending: true });
 
+  const { messages } = await getMessages();
+  const t = messages.projects;
+
   return (
     <main className="mx-auto max-w-md px-6 py-12">
       <Link
         href={`/dashboard/projects/${id}`}
         className="text-sm text-muted underline underline-offset-2"
       >
-        ← Project
+        ← {t.backToProject}
       </Link>
 
       <h1 className="mb-6 mt-2 text-2xl font-medium tracking-tight">
-        Edit Project
+        {t.editTitle}
       </h1>
 
       <ProjectForm
         action={updateProject}
         defaultValues={project}
         customers={customers ?? []}
-        submitLabel="Save changes"
+        submitLabel={messages.common.saveChanges}
       />
     </main>
   );

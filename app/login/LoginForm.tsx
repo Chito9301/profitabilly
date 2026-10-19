@@ -5,18 +5,20 @@ import Link from "next/link";
 import TextField from "@/components/TextField";
 import Button from "@/components/Button";
 import { logIn, type AuthFormState } from "@/lib/auth/actions";
+import { useI18n } from "@/lib/i18n/provider";
 
 const initialState: AuthFormState = {};
 
 export default function LoginForm() {
   const [state, formAction, isPending] = useActionState(logIn, initialState);
+  const t = useI18n().messages.auth;
 
   return (
     <form action={formAction} className="mt-8 flex flex-col gap-4">
-      <TextField label="Email" name="email" type="email" required autoComplete="email" />
+      <TextField label={t.fields.email} name="email" type="email" required autoComplete="email" />
       <div className="flex flex-col gap-2">
         <TextField
-          label="Password"
+          label={t.fields.password}
           name="password"
           type="password"
           required
@@ -27,7 +29,7 @@ export default function LoginForm() {
             href="/forgot-password"
             className="text-sm text-ink underline underline-offset-2"
           >
-            Forgot password?
+            {t.login.forgotPassword}
           </Link>
         </div>
       </div>
@@ -39,7 +41,7 @@ export default function LoginForm() {
       )}
 
       <Button type="submit" variant="primary" disabled={isPending} className="mt-2 w-full">
-        {isPending ? "Logging in…" : "Log in"}
+        {isPending ? t.login.submitting : t.login.submit}
       </Button>
     </form>
   );

@@ -2,6 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getMessages } from "@/lib/i18n/server";
+import { translateFinanceError } from "@/lib/i18n/finance-errors";
 import {
   validateDescription,
   validateAmount,
@@ -41,17 +43,20 @@ export async function createCost(
   _prevState: CostFormState,
   formData: FormData,
 ): Promise<CostFormState> {
+  // The active language only affects the text returned to the user.
+  const { messages } = await getMessages();
+
   const projectId = requiredField(formData, "projectId");
-  if (!projectId) return { error: "Something went wrong. Please try again." };
+  if (!projectId) return { error: messages.common.genericError };
 
   const description = validateDescription(formData);
-  if ("error" in description) return { error: description.error };
+  if ("error" in description) return { error: translateFinanceError(description.error, messages) };
   const amount = validateAmount(formData);
-  if ("error" in amount) return { error: amount.error };
+  if ("error" in amount) return { error: translateFinanceError(amount.error, messages) };
   const category = validateCategory(formData);
-  if ("error" in category) return { error: category.error };
+  if ("error" in category) return { error: translateFinanceError(category.error, messages) };
   const date = validateDate(formData);
-  if ("error" in date) return { error: date.error };
+  if ("error" in date) return { error: translateFinanceError(date.error, messages) };
 
   const supabase = await createClient();
   const {
@@ -61,7 +66,7 @@ export async function createCost(
   if (!user) redirect("/login");
 
   if (!(await projectBelongsToUser(supabase, projectId, user.id))) {
-    return { error: "Please select a valid project." };
+    return { error: messages.entries.errors.invalidProject };
   }
 
   const { error } = await supabase.from("costs").insert({
@@ -74,7 +79,7 @@ export async function createCost(
   });
 
   if (error) {
-    return { error: "Could not save the cost entry. Please try again." };
+    return { error: messages.entries.errors.costSaveFailed };
   }
 
   redirect(`/dashboard/projects/${projectId}?costCreated=1`);
@@ -84,18 +89,21 @@ export async function updateCost(
   _prevState: CostFormState,
   formData: FormData,
 ): Promise<CostFormState> {
+  // The active language only affects the text returned to the user.
+  const { messages } = await getMessages();
+
   const id = requiredField(formData, "id");
   const projectId = requiredField(formData, "projectId");
-  if (!id || !projectId) return { error: "Something went wrong. Please try again." };
+  if (!id || !projectId) return { error: messages.common.genericError };
 
   const description = validateDescription(formData);
-  if ("error" in description) return { error: description.error };
+  if ("error" in description) return { error: translateFinanceError(description.error, messages) };
   const amount = validateAmount(formData);
-  if ("error" in amount) return { error: amount.error };
+  if ("error" in amount) return { error: translateFinanceError(amount.error, messages) };
   const category = validateCategory(formData);
-  if ("error" in category) return { error: category.error };
+  if ("error" in category) return { error: translateFinanceError(category.error, messages) };
   const date = validateDate(formData);
-  if ("error" in date) return { error: date.error };
+  if ("error" in date) return { error: translateFinanceError(date.error, messages) };
 
   const supabase = await createClient();
   const {
@@ -105,7 +113,7 @@ export async function updateCost(
   if (!user) redirect("/login");
 
   if (!(await projectBelongsToUser(supabase, projectId, user.id))) {
-    return { error: "Please select a valid project." };
+    return { error: messages.entries.errors.invalidProject };
   }
 
   // Scoped by id + user_id + project_id — see the matching comment in
@@ -127,7 +135,7 @@ export async function updateCost(
 
   if (error || !updated) {
     return {
-      error: "Could not update the cost entry. It may not exist or you may not have access to it.",
+      error: messages.entries.errors.costUpdateFailed,
     };
   }
 
@@ -140,6 +148,9 @@ export async function deleteCost(
   _prevState: CostFormState,
   _formData: FormData,
 ): Promise<CostFormState> {
+  // The active language only affects the text returned to the user.
+  const { messages } = await getMessages();
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -161,7 +172,7 @@ export async function deleteCost(
 
   if (error || !deleted) {
     return {
-      error: "Could not delete the cost entry. It may not exist or you may not have access to it.",
+      error: messages.entries.errors.costDeleteFailed,
     };
   }
 

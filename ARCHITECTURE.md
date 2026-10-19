@@ -125,6 +125,76 @@ links back to, and redirects on success to, that project's detail page
 (`/dashboard/projects/[id]`). Follow this convention for any new nested
 entity rather than introducing a new pattern.
 
+## Internationalization (Mini-Sprint 47)
+
+Foundation only; no translation library. Files:
+`lib/i18n/config.ts` (pure: locales, cookie name `jw_locale`,
+`resolveLocale`), `lib/i18n/messages/{en,es,index}.ts` (dictionaries),
+`lib/i18n/server.ts` (`getLocale`/`getMessages`, read the cookie and
+`Accept-Language`), `lib/i18n/actions.ts` (`setLocale` server action),
+`lib/i18n/provider.tsx` (client context + `useI18n`) and
+`components/LanguageSwitcher.tsx`.
+
+- **Resolution order:** valid cookie (`"es"`/`"en"` only) → the browser's
+  highest-q language if it is `es` or `es-*` → English. Never
+  `localStorage`/`navigator.language`, so the server's first HTML is
+  already final and there is nothing to mismatch at hydration.
+- **Wiring:** `app/layout.tsx` (async) resolves the locale, sets
+  `<html lang>` and wraps children in `I18nProvider`. Server components
+  call `getMessages()`; client components call `useI18n()`.
+- **Switching:** the switcher calls `setLocale` (cookie, `maxAge` 1 year,
+  `path=/`, `SameSite=Lax`, `Secure` when `NODE_ENV=production`) and then
+  `router.refresh()`; the session is untouched.
+- **Adding strings:** add the key to `en.ts` first (it defines the
+  `Messages` type), then to `es.ts`; TypeScript flags a missing or extra
+  key in `es.ts`.
+- **Public/auth pages (Mini-Sprint 48):** `app/page.tsx`, login, signup,
+  forgot-password and reset-password read their text from `home.*` and
+  `auth.*` (server pages via `getMessages()`, client forms via
+  `useI18n()`). Server actions in `lib/auth/actions.ts` call
+  `getMessages()` and return the translated string in the same
+  `{ error | message }` shape; `friendlyAuthError(message, t.errors)` keeps
+  matching Supabase's English messages and only the returned text is
+  localized. `SelectField` accepts optional `optionLabels` (display only;
+  the submitted value is unchanged). `LanguageSwitcher` is rendered
+  top-right on each public page. Browser-native validation bubbles
+  (`required`, `minLength`) follow the browser's own language, not
+  `jw_locale`.
+- **Customers (Mini-Sprint 49):** text lives under `customers.*`, with
+  generic shared strings in `common.*` (email, status, edit, delete,
+  saving/deleting, generic error). Server pages use `getMessages()`;
+  `CustomerForm` and `DeleteCustomerButton` use `useI18n()`;
+  `lib/customers/actions.ts` returns translated error text in the same
+  `{ error }` shape. Dates pass the active locale to
+  `toLocaleDateString`. `StatusBadge` takes an optional `label` so only
+  callers that pass it (Customers) show translated statuses. Dictionaries
+  must stay string-only: they cross the server→client boundary as props,
+  so functions/templates are not allowed.
+- **Projects (Mini-Sprints 50-51):** keys under `projects.*`
+  (plus `common.name/actions/saveChanges`). Covered: list, new/edit
+  pages, `ProjectForm`, `DeleteProjectButton`, `AcceptProjectButton`,
+  `CompleteProjectButton` and all messages in `lib/projects/actions.ts`.
+  Statuses use `StatusBadge`'s optional `label` and `SelectField`'s
+  `optionLabels`; stored values stay `Active`/`Completed`/`Archived`.
+  Mini-Sprint 51 added `projectDetail.*` (detail page text, success
+  notices) and `entries.*` (delete confirmations, cost-category labels,
+  validation and action errors) plus `common.description/amount/date/
+  category`, and covers `projects/[id]/page.tsx`, the revenue / cost /
+  estimated-revenue / estimated-cost routes, forms and delete buttons,
+  and their actions. `lib/finance/validation.ts` returns English text and
+  is untouched: actions pass its errors through
+  `translateFinanceError` (`lib/i18n/finance-errors.ts`), which maps the
+  exact English message to a key and falls back to the original text.
+  The margin placeholder `"N/A"` comes from `lib/finance/money.ts` and is
+  intentionally left as is.
+- **Data stays as stored:** statuses (`Active`/`Completed`/`Archived`),
+  cost categories and other DB values are never translated or rewritten;
+  future sprints translate only the displayed label.
+- **Cost:** reading `cookies()`/`headers()` in the root layout makes
+  every route dynamic (including `/`). Page `metadata` and
+  `app/manifest.ts` are still English. The preference is per browser
+  (cookie), not per account.
+
 ## Design system
 
 Approved direction (Mini-Sprint 36): clean, minimal, professional,
@@ -380,7 +450,7 @@ sprint's scope.
 ## Feedback link (Mini-Sprint 43)
 
 `components/DashboardNav.tsx` renders one extra `<a>` after the mapped
-`LINKS`, pushed right with `ml-auto`: `href="mailto:miproyecto353@gmail.com?subject=JobWorth%20Feedback"`
+`LINKS`, pushed right with `ml-auto`: `href="mailto:jobwhortsupport@gmail.com?subject=JobWorth%20Feedback"`
 (subject built with `encodeURIComponent`, body left unset — the standard
 way to leave a mailto body empty). Styled smaller/muted (`text-xs
 text-muted`) with no bottom-border active state and no `aria-current`,

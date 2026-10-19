@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { completeProject, type ProjectFormState } from "@/lib/projects/actions";
 import Button from "@/components/Button";
+import { useI18n } from "@/lib/i18n/provider";
 
 const initialState: ProjectFormState = {};
 
@@ -11,6 +12,7 @@ export default function CompleteProjectButton({
 }: {
   projectId: string;
 }) {
+  const { messages } = useI18n();
   const [state, formAction, isPending] = useActionState(
     completeProject.bind(null, projectId),
     initialState,
@@ -20,7 +22,9 @@ export default function CompleteProjectButton({
     <div>
       <form action={formAction}>
         <Button type="submit" variant="secondary" disabled={isPending}>
-          {isPending ? "Marking as completed…" : "Mark as Completed"}
+          {isPending
+            ? messages.projects.lifecycle.completing
+            : messages.projects.lifecycle.complete}
         </Button>
       </form>
       {state.error && (

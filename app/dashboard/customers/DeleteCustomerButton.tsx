@@ -2,6 +2,7 @@
 
 import { useActionState, type FormEvent } from "react";
 import { deleteCustomer, type CustomerFormState } from "@/lib/customers/actions";
+import { useI18n } from "@/lib/i18n/provider";
 
 const initialState: CustomerFormState = {};
 
@@ -10,6 +11,8 @@ export default function DeleteCustomerButton({
 }: {
   customerId: string;
 }) {
+  const { messages } = useI18n();
+
   // Binding the id gives deleteCustomer the (prevState, formData) shape
   // useActionState expects, while still scoping the delete to this row.
   const [state, formAction, isPending] = useActionState(
@@ -22,7 +25,7 @@ export default function DeleteCustomerButton({
       <form
         action={formAction}
         onSubmit={(e: FormEvent<HTMLFormElement>) => {
-          if (!confirm("Delete this customer? This can't be undone.")) {
+          if (!confirm(messages.customers.confirmDelete)) {
             e.preventDefault();
           }
         }}
@@ -32,7 +35,7 @@ export default function DeleteCustomerButton({
           disabled={isPending}
           className="text-sm text-danger underline underline-offset-2 disabled:opacity-50"
         >
-          {isPending ? "Deleting…" : "Delete"}
+          {isPending ? messages.common.deleting : messages.common.delete}
         </button>
       </form>
       {state.error && (

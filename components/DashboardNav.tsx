@@ -3,14 +3,18 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { useI18n } from "@/lib/i18n/provider";
 
 // The three main sections of the app. Keep this list small and flat —
 // see ARCHITECTURE.md's Navigation section for why (no breadcrumbs, no
 // dynamic nav system — that's a later stage).
+// `key` selects the translated label in the i18n dictionaries
+// (Mini-Sprint 47); hrefs are unchanged.
 const LINKS = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/dashboard/projects", label: "Projects" },
-  { href: "/dashboard/customers", label: "Customers" },
+  { href: "/dashboard", key: "dashboard" },
+  { href: "/dashboard/projects", key: "projects" },
+  { href: "/dashboard/customers", key: "customers" },
 ] as const;
 
 // "/dashboard" only matches the Dashboard page itself; the other two
@@ -22,12 +26,14 @@ function isActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
+// The mail subject is intentionally NOT translated: it identifies the
+// product in the support inbox in either language.
 // mailto link is intentionally not part of LINKS: it's not an app
 // section (no route, no active-state marker), just a quiet way to
 // reach the developer. Body is omitted (not set to ""), which is the
 // standard way to leave a mailto's body empty for the user to fill in.
 const FEEDBACK_MAILTO =
-  "mailto:miproyecto353@gmail.com?subject=" +
+  "mailto:jobwhortsupport@gmail.com?subject=" +
   encodeURIComponent("JobWorth Feedback");
 
 // One component, two layouts (Mini-Sprint 44), switched with CSS only so
@@ -43,11 +49,12 @@ const FEEDBACK_MAILTO =
 // min-h-11 = 44px touch target on mobile; 40px from `lg` up.
 export default function DashboardNav() {
   const pathname = usePathname();
+  const { messages } = useI18n();
 
   return (
     <nav
-      aria-label="Main"
-      className="border-b border-rule bg-surface lg:sticky lg:top-0 lg:flex lg:h-dvh lg:w-56 lg:shrink-0 lg:flex-col lg:border-b-0 lg:border-r"
+      aria-label={messages.nav.mainLabel}
+      className="relative border-b border-rule bg-surface lg:sticky lg:top-0 lg:flex lg:h-dvh lg:w-56 lg:shrink-0 lg:flex-col lg:border-b-0 lg:border-r"
     >
       <Link
         href="/dashboard"
@@ -67,9 +74,13 @@ export default function DashboardNav() {
         </span>
       </Link>
 
+      {/* Phones/tablets: language switch sits in the brand row. From `lg`
+          up the sidebar shows it at the bottom instead (see below). */}
+      <LanguageSwitcher className="absolute right-4 top-1 lg:hidden" />
+
       <div className="flex items-center gap-6 overflow-x-auto px-6 text-sm lg:flex-1 lg:flex-col lg:items-stretch lg:gap-0 lg:overflow-visible lg:px-3 lg:pb-4">
         <div className="flex items-center gap-6 lg:flex-col lg:items-stretch lg:gap-1">
-          {LINKS.map(({ href, label }) => {
+          {LINKS.map(({ href, key }) => {
             const active = isActive(pathname, href);
             return (
               <Link
@@ -82,7 +93,7 @@ export default function DashboardNav() {
                     : "border-transparent text-ink-soft hover:text-ink lg:hover:bg-ink/5"
                 }`}
               >
-                {label}
+                {messages.nav[key]}
               </Link>
             );
           })}
@@ -93,9 +104,10 @@ export default function DashboardNav() {
             read as a minor utility link, not a fourth nav section.
             ml-auto pushes it right on the top bar; lg:mt-auto pins it to
             the bottom of the sidebar. */}
+        <LanguageSwitcher className="hidden lg:mt-auto lg:inline-flex lg:self-start lg:px-1" />
         <a
           href={FEEDBACK_MAILTO}
-          className="ml-auto inline-flex min-h-11 shrink-0 items-center gap-1 text-xs text-muted transition-colors hover:text-ink-soft lg:ml-0 lg:mt-auto lg:min-h-10 lg:px-3"
+          className="ml-auto inline-flex min-h-11 shrink-0 items-center gap-1 text-xs text-muted transition-colors hover:text-ink-soft lg:ml-0 lg:min-h-10 lg:px-3"
         >
           <svg
             aria-hidden="true"
@@ -108,7 +120,7 @@ export default function DashboardNav() {
             <rect x="1.5" y="3.5" width="13" height="9" rx="1.5" />
             <path d="M2 4.5l6 4.5 6-4.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          Feedback
+          {messages.nav.feedback}
         </a>
       </div>
     </nav>

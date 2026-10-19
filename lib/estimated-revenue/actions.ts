@@ -2,6 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getMessages } from "@/lib/i18n/server";
+import { translateFinanceError } from "@/lib/i18n/finance-errors";
 import {
   validateDescription,
   validateAmount,
@@ -22,13 +24,16 @@ export async function createEstimatedRevenue(
   _prevState: EstimatedRevenueFormState,
   formData: FormData,
 ): Promise<EstimatedRevenueFormState> {
+  // The active language only affects the text returned to the user.
+  const { messages } = await getMessages();
+
   const projectId = requiredField(formData, "projectId");
-  if (!projectId) return { error: "Something went wrong. Please try again." };
+  if (!projectId) return { error: messages.common.genericError };
 
   const description = validateDescription(formData);
-  if ("error" in description) return { error: description.error };
+  if ("error" in description) return { error: translateFinanceError(description.error, messages) };
   const amount = validateAmount(formData);
-  if ("error" in amount) return { error: amount.error };
+  if ("error" in amount) return { error: translateFinanceError(amount.error, messages) };
 
   const supabase = await createClient();
   const {
@@ -41,7 +46,7 @@ export async function createEstimatedRevenue(
   if (!user) redirect("/login");
 
   if (!(await projectBelongsToUser(supabase, projectId, user.id))) {
-    return { error: "Please select a valid project." };
+    return { error: messages.entries.errors.invalidProject };
   }
 
   const { error } = await supabase.from("estimated_revenues").insert({
@@ -52,7 +57,7 @@ export async function createEstimatedRevenue(
   });
 
   if (error) {
-    return { error: "Could not save the estimated revenue. Please try again." };
+    return { error: messages.entries.errors.estimatedRevenueSaveFailed };
   }
 
   redirect(`/dashboard/projects/${projectId}?estimatedRevenueCreated=1`);
@@ -62,14 +67,17 @@ export async function updateEstimatedRevenue(
   _prevState: EstimatedRevenueFormState,
   formData: FormData,
 ): Promise<EstimatedRevenueFormState> {
+  // The active language only affects the text returned to the user.
+  const { messages } = await getMessages();
+
   const id = requiredField(formData, "id");
   const projectId = requiredField(formData, "projectId");
-  if (!id || !projectId) return { error: "Something went wrong. Please try again." };
+  if (!id || !projectId) return { error: messages.common.genericError };
 
   const description = validateDescription(formData);
-  if ("error" in description) return { error: description.error };
+  if ("error" in description) return { error: translateFinanceError(description.error, messages) };
   const amount = validateAmount(formData);
-  if ("error" in amount) return { error: amount.error };
+  if ("error" in amount) return { error: translateFinanceError(amount.error, messages) };
 
   const supabase = await createClient();
   const {
@@ -79,7 +87,7 @@ export async function updateEstimatedRevenue(
   if (!user) redirect("/login");
 
   if (!(await projectBelongsToUser(supabase, projectId, user.id))) {
-    return { error: "Please select a valid project." };
+    return { error: messages.entries.errors.invalidProject };
   }
 
   // Scoped by id + user_id + project_id — see the matching comment in
@@ -99,7 +107,7 @@ export async function updateEstimatedRevenue(
 
   if (error || !updated) {
     return {
-      error: "Could not update the estimated revenue. It may not exist or you may not have access to it.",
+      error: messages.entries.errors.estimatedRevenueUpdateFailed,
     };
   }
 
@@ -112,6 +120,9 @@ export async function deleteEstimatedRevenue(
   _prevState: EstimatedRevenueFormState,
   _formData: FormData,
 ): Promise<EstimatedRevenueFormState> {
+  // The active language only affects the text returned to the user.
+  const { messages } = await getMessages();
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -133,7 +144,7 @@ export async function deleteEstimatedRevenue(
 
   if (error || !deleted) {
     return {
-      error: "Could not delete the estimated revenue. It may not exist or you may not have access to it.",
+      error: messages.entries.errors.estimatedRevenueDeleteFailed,
     };
   }
 

@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { acceptProject, type ProjectFormState } from "@/lib/projects/actions";
 import Button from "@/components/Button";
+import { useI18n } from "@/lib/i18n/provider";
 
 const initialState: ProjectFormState = {};
 
@@ -11,6 +12,7 @@ export default function AcceptProjectButton({
 }: {
   projectId: string;
 }) {
+  const { messages } = useI18n();
   const [state, formAction, isPending] = useActionState(
     acceptProject.bind(null, projectId),
     initialState,
@@ -20,7 +22,9 @@ export default function AcceptProjectButton({
     <div>
       <form action={formAction}>
         <Button type="submit" variant="primary" disabled={isPending}>
-          {isPending ? "Accepting…" : "Accept Project"}
+          {isPending
+            ? messages.projects.lifecycle.accepting
+            : messages.projects.lifecycle.accept}
         </Button>
       </form>
       {state.error && (

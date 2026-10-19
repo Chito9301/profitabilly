@@ -4,6 +4,9 @@ import { FIELD_CONTROL_STYLES, FIELD_LABEL_STYLES } from "./fieldStyles";
 type SelectFieldProps = SelectHTMLAttributes<HTMLSelectElement> & {
   label: string;
   options: readonly string[];
+  // Optional display text per option value (Mini-Sprint 48). The
+  // submitted value is always the original option string.
+  optionLabels?: Readonly<Record<string, string>>;
 };
 
 export default function SelectField({
@@ -11,6 +14,7 @@ export default function SelectField({
   id,
   name,
   options,
+  optionLabels,
   ...props
 }: SelectFieldProps) {
   const fieldId = id ?? name;
@@ -28,7 +32,7 @@ export default function SelectField({
       >
         {options.map((option) => (
           <option key={option} value={option}>
-            {option}
+            {optionLabels?.[option] ?? option}
           </option>
         ))}
       </select>

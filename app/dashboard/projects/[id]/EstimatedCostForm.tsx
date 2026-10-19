@@ -7,6 +7,7 @@ import Button from "@/components/Button";
 import type { EstimatedCostFormState } from "@/lib/estimated-costs/actions";
 import { CATEGORIES } from "@/lib/costs/constants";
 import type { EstimatedCost } from "@/types/supabase";
+import { useI18n } from "@/lib/i18n/provider";
 
 type EstimatedCostFormProps = {
   action: (
@@ -28,6 +29,7 @@ export default function EstimatedCostForm({
   submitLabel,
 }: EstimatedCostFormProps) {
   const [state, formAction, isPending] = useActionState(action, initialState);
+  const { messages } = useI18n();
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
@@ -37,22 +39,23 @@ export default function EstimatedCostForm({
       )}
 
       <TextField
-        label="Description"
+        label={messages.common.description}
         name="description"
         required
         defaultValue={defaultValues?.description ?? ""}
       />
       <TextField
-        label="Amount"
+        label={messages.common.amount}
         name="amount"
         inputMode="decimal"
         required
         defaultValue={defaultValues?.amount ?? ""}
       />
       <SelectField
-        label="Category"
+        label={messages.common.category}
         name="category"
         options={CATEGORIES}
+        optionLabels={messages.entries.categories}
         defaultValue={defaultValues?.category ?? CATEGORIES[0]}
         required
       />
@@ -69,7 +72,7 @@ export default function EstimatedCostForm({
         disabled={isPending}
         className="mt-2"
       >
-        {isPending ? "Saving…" : submitLabel}
+        {isPending ? messages.common.saving : submitLabel}
       </Button>
     </form>
   );

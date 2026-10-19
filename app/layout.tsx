@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { I18nProvider } from "@/lib/i18n/provider";
+import { getMessages } from "@/lib/i18n/server";
 
 // Single type family for the whole app (see tailwind.config.ts).
 // Inter: neutral and highly legible at small sizes, and it ships the
@@ -40,14 +42,23 @@ export const viewport: Viewport = {
   themeColor: "#0B1F46",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: ReactNode;
 }>) {
+  // Mini-Sprint 47: language is resolved on the server (cookie, then
+  // Accept-Language, then English) so <html lang> and the first HTML are
+  // already correct. Page metadata above is still English (later sprint).
+  const { locale, messages } = await getMessages();
+
   return (
-    <html lang="en" className={inter.variable}>
-      <body>{children}</body>
+    <html lang={locale} className={inter.variable}>
+      <body>
+        <I18nProvider locale={locale} messages={messages}>
+          {children}
+        </I18nProvider>
+      </body>
     </html>
   );
 }

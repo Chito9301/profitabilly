@@ -11,12 +11,14 @@ import DeleteEstimatedRevenueButton from "./DeleteEstimatedRevenueButton";
 import DeleteEstimatedCostButton from "./DeleteEstimatedCostButton";
 import AcceptProjectButton from "./AcceptProjectButton";
 import CompleteProjectButton from "./CompleteProjectButton";
+import { getMessages } from "@/lib/i18n/server";
 import { sumCents, formatCents, calculateMarginPercent, formatMarginPercent, profitToneClass } from "@/lib/finance/money";
 import { CATEGORIES } from "@/lib/costs/constants";
 import type { Revenue, Cost, EstimatedRevenue, EstimatedCost } from "@/types/supabase";
 
-function formatDate(iso: string) {
-  return new Date(iso + "T00:00:00").toLocaleDateString(undefined, {
+// Month names follow the active language (was the server default).
+function formatDate(iso: string, locale: string) {
+  return new Date(iso + "T00:00:00").toLocaleDateString(locale, {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -91,6 +93,7 @@ function EntryRow({
   amount,
   currency,
   editHref,
+  editLabel,
   deleteButton,
 }: {
   description: string;
@@ -98,6 +101,7 @@ function EntryRow({
   amount: string;
   currency: string;
   editHref: string;
+  editLabel: string;
   deleteButton: ReactNode;
 }) {
   return (
@@ -112,7 +116,7 @@ function EntryRow({
         </p>
         <div className="flex items-center gap-4">
           <Link href={editHref} className={EDIT_LINK}>
-            Edit
+            {editLabel}
           </Link>
           {deleteButton}
         </div>
@@ -124,22 +128,24 @@ function EntryRow({
 const TH = "py-2 pr-4 font-medium whitespace-nowrap";
 const TD = "py-2 pr-4 whitespace-nowrap";
 
-const SUCCESS_MESSAGES: Record<string, string> = {
-  revenueCreated: "Revenue added.",
-  revenueUpdated: "Revenue updated.",
-  revenueDeleted: "Revenue deleted.",
-  costCreated: "Cost added.",
-  costUpdated: "Cost updated.",
-  costDeleted: "Cost deleted.",
-  estimatedRevenueCreated: "Estimated revenue added.",
-  estimatedRevenueUpdated: "Estimated revenue updated.",
-  estimatedRevenueDeleted: "Estimated revenue deleted.",
-  estimatedCostCreated: "Estimated cost added.",
-  estimatedCostUpdated: "Estimated cost updated.",
-  estimatedCostDeleted: "Estimated cost deleted.",
-  accepted: "Project accepted.",
-  completed: "Project marked as completed.",
-};
+// Query-string flags set by the redirects in lib/*/actions.ts. The text
+// shown for each comes from the active dictionary (projectDetail.messages).
+const SUCCESS_KEYS = [
+  "revenueCreated",
+  "revenueUpdated",
+  "revenueDeleted",
+  "costCreated",
+  "costUpdated",
+  "costDeleted",
+  "estimatedRevenueCreated",
+  "estimatedRevenueUpdated",
+  "estimatedRevenueDeleted",
+  "estimatedCostCreated",
+  "estimatedCostUpdated",
+  "estimatedCostDeleted",
+  "accepted",
+  "completed",
+] as const;
 
 export default async function ProjectDetailPage({
   params,
@@ -150,6 +156,14 @@ export default async function ProjectDetailPage({
 }) {
   const { id } = await params;
   const searchParamsResolved = await searchParams;
+  const { locale, messages } = await getMessages();
+  const t = messages.projects;
+  const d = messages.projectDetail;
+  const categoryLabel = (category: string) =>
+    messages.entries.categories[category as keyof typeof messages.entries.categories] ??
+    category;
+  const statusLabel = (status: string) =>
+    t.status[status as keyof typeof t.status] ?? status;
 
   const supabase = await createClient();
   const {
@@ -236,10 +250,10 @@ export default async function ProjectDetailPage({
     estimatedRevenueCents,
   );
 
-  const successKey = Object.keys(SUCCESS_MESSAGES).find(
+  const successKey = SUCCESS_KEYS.find(
     (key) => searchParamsResolved[key] !== undefined,
   );
-  const successMessage = successKey ? SUCCESS_MESSAGES[successKey] : null;
+  const successMessage = successKey ? d.messages[successKey] : null;
 
   // Estimated vs Actual: plain differences between totals already
   // computed above — not a new calculation engine. Margin difference
@@ -299,7 +313,7 @@ export default async function ProjectDetailPage({
         href="/dashboard/projects"
         className="inline-flex min-h-12 items-center text-sm text-muted underline underline-offset-2 sm:min-h-10"
       >
-        ← Projects
+        ← {t.title}
       </Link>
 
       <header className="mt-1 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -308,7 +322,10 @@ export default async function ProjectDetailPage({
             <h1 className="break-words text-page font-semibold">
               {project.name}
             </h1>
-            <StatusBadge status={project.status} />
+            <StatusBadge
+              status={project.status}
+              label={statusLabel(project.status)}
+            />
           </div>
           {customer?.name && (
             <p className="mt-1 text-sm text-muted">{customer.name}</p>
@@ -319,7 +336,7 @@ export default async function ProjectDetailPage({
           variant="secondary"
           className="w-full sm:w-auto"
         >
-          Edit
+          {messages.common.edit}
         </Button>
       </header>
 
@@ -343,12 +360,12 @@ export default async function ProjectDetailPage({
             id="profitability-check"
             className="text-lg font-medium tracking-tight"
           >
-            Profitability Check
+            {d.profitabilityCheck.title}
           </h2>
 
           {estimatedRevenueCents === 0 ? (
             <p className="mt-2 text-sm text-muted">
-              Add an estimated revenue to see a profitability check for this project.
+              {d.profitabilityCheck.empty}
             </p>
           ) : (
             <>
@@ -356,31 +373,31 @@ export default async function ProjectDetailPage({
                 className={`mt-2 text-base font-medium ${profitToneClass(estimatedProfitCents)}`}
               >
                 {estimatedProfitCents > 0
-                  ? "Estimated result: profitable."
+                  ? d.profitabilityCheck.profitable
                   : estimatedProfitCents < 0
-                    ? "Estimated result: loss."
-                    : "Estimated result: break-even."}
+                    ? d.profitabilityCheck.loss
+                    : d.profitabilityCheck.breakEven}
               </p>
 
               <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-4 border-t border-rule pt-4 lg:grid-cols-4">
                 <Stat
-                  label="Estimated Revenue"
+                  label={d.stats.estimatedRevenue}
                   currency={currency}
                   value={formatCents(estimatedRevenueCents)}
                 />
                 <Stat
-                  label="Estimated Costs"
+                  label={d.stats.estimatedCosts}
                   currency={currency}
                   value={formatCents(estimatedCostCents)}
                 />
                 <Stat
-                  label="Estimated Profit"
+                  label={d.stats.estimatedProfit}
                   currency={currency}
                   value={formatCents(estimatedProfitCents)}
                   tone={profitToneClass(estimatedProfitCents)}
                 />
                 <Stat
-                  label="Estimated Margin"
+                  label={d.stats.estimatedMargin}
                   value={formatMarginPercent(estimatedMarginPercent)}
                   tone={profitToneClass(estimatedMarginPercent)}
                 />
@@ -399,28 +416,28 @@ export default async function ProjectDetailPage({
           id="actual-heading"
           className="mb-3 text-lg font-medium tracking-tight"
         >
-          Actual
+          {d.sections.actual}
         </h2>
         <Card>
           <dl className="grid grid-cols-2 gap-x-4 gap-y-4 lg:grid-cols-4">
             <Stat
-              label="Revenue"
+              label={t.fields.revenue}
               currency={currency}
               value={formatCents(revenueCents)}
             />
             <Stat
-              label="Costs"
+              label={t.fields.costs}
               currency={currency}
               value={formatCents(costCents)}
             />
             <Stat
-              label="Profit"
+              label={t.fields.profit}
               currency={currency}
               value={formatCents(profitCents)}
               tone={profitToneClass(profitCents)}
             />
             <Stat
-              label="Margin"
+              label={t.fields.margin}
               value={formatMarginPercent(marginPercent)}
               tone={profitToneClass(marginPercent)}
             />
@@ -428,28 +445,29 @@ export default async function ProjectDetailPage({
         </Card>
 
         <div className="mt-6">
-          <SectionHeader title="Revenue">
+          <SectionHeader title={t.fields.revenue}>
             <Button
               href={`/dashboard/projects/${id}/revenue/new`}
               variant="primary"
               className="w-full sm:w-auto"
             >
-              Add Revenue
+              {d.buttons.addRevenue}
             </Button>
           </SectionHeader>
 
           {revenueRows.length === 0 ? (
-            <p className="text-sm text-muted">No revenue entries yet.</p>
+            <p className="text-sm text-muted">{d.empty.revenue}</p>
           ) : (
             <ul className="flex flex-col gap-2">
               {revenueRows.map((revenue) => (
                 <EntryRow
                   key={revenue.id}
                   description={revenue.description}
-                  meta={formatDate(revenue.date)}
+                  meta={formatDate(revenue.date, locale)}
                   amount={revenue.amount}
                   currency={currency}
                   editHref={`/dashboard/projects/${id}/revenue/${revenue.id}/edit`}
+                  editLabel={messages.common.edit}
                   deleteButton={
                     <DeleteRevenueButton revenueId={revenue.id} projectId={id} />
                   }
@@ -460,28 +478,29 @@ export default async function ProjectDetailPage({
         </div>
 
         <div className="mt-8">
-          <SectionHeader title="Costs">
+          <SectionHeader title={t.fields.costs}>
             <Button
               href={`/dashboard/projects/${id}/costs/new`}
               variant="primary"
               className="w-full sm:w-auto"
             >
-              Add Cost
+              {d.buttons.addCost}
             </Button>
           </SectionHeader>
 
           {costRows.length === 0 ? (
-            <p className="text-sm text-muted">No cost entries yet.</p>
+            <p className="text-sm text-muted">{d.empty.costs}</p>
           ) : (
             <ul className="flex flex-col gap-2">
               {costRows.map((cost) => (
                 <EntryRow
                   key={cost.id}
                   description={cost.description}
-                  meta={`${cost.category} · ${formatDate(cost.date)}`}
+                  meta={`${categoryLabel(cost.category)} · ${formatDate(cost.date, locale)}`}
                   amount={cost.amount}
                   currency={currency}
                   editHref={`/dashboard/projects/${id}/costs/${cost.id}/edit`}
+                  editLabel={messages.common.edit}
                   deleteButton={
                     <DeleteCostButton costId={cost.id} projectId={id} />
                   }
@@ -501,28 +520,28 @@ export default async function ProjectDetailPage({
           id="estimated-heading"
           className="mb-3 text-lg font-medium tracking-tight"
         >
-          Estimated
+          {d.sections.estimated}
         </h2>
         <Card>
           <dl className="grid grid-cols-2 gap-x-4 gap-y-4 lg:grid-cols-4">
             <Stat
-              label="Est. Revenue"
+              label={d.stats.estRevenueShort}
               currency={currency}
               value={formatCents(estimatedRevenueCents)}
             />
             <Stat
-              label="Est. Costs"
+              label={d.stats.estCostsShort}
               currency={currency}
               value={formatCents(estimatedCostCents)}
             />
             <Stat
-              label="Est. Profit"
+              label={d.stats.estProfitShort}
               currency={currency}
               value={formatCents(estimatedProfitCents)}
               tone={profitToneClass(estimatedProfitCents)}
             />
             <Stat
-              label="Est. Margin"
+              label={d.stats.estMarginShort}
               value={formatMarginPercent(estimatedMarginPercent)}
               tone={profitToneClass(estimatedMarginPercent)}
             />
@@ -530,18 +549,18 @@ export default async function ProjectDetailPage({
         </Card>
 
         <div className="mt-6">
-          <SectionHeader title="Estimated Revenue">
+          <SectionHeader title={d.stats.estimatedRevenue}>
             <Button
               href={`/dashboard/projects/${id}/estimated-revenue/new`}
               variant="primary"
               className="w-full sm:w-auto"
             >
-              Add Estimated Revenue
+              {d.buttons.addEstimatedRevenue}
             </Button>
           </SectionHeader>
 
           {estimatedRevenueRows.length === 0 ? (
-            <p className="text-sm text-muted">No estimated revenue entries yet.</p>
+            <p className="text-sm text-muted">{d.empty.estimatedRevenue}</p>
           ) : (
             <ul className="flex flex-col gap-2">
               {estimatedRevenueRows.map((estimatedRevenue) => (
@@ -551,6 +570,7 @@ export default async function ProjectDetailPage({
                   amount={estimatedRevenue.amount}
                   currency={currency}
                   editHref={`/dashboard/projects/${id}/estimated-revenue/${estimatedRevenue.id}/edit`}
+                  editLabel={messages.common.edit}
                   deleteButton={
                     <DeleteEstimatedRevenueButton
                       estimatedRevenueId={estimatedRevenue.id}
@@ -564,28 +584,29 @@ export default async function ProjectDetailPage({
         </div>
 
         <div className="mt-8">
-          <SectionHeader title="Estimated Costs">
+          <SectionHeader title={d.stats.estimatedCosts}>
             <Button
               href={`/dashboard/projects/${id}/estimated-costs/new`}
               variant="primary"
               className="w-full sm:w-auto"
             >
-              Add Estimated Cost
+              {d.buttons.addEstimatedCost}
             </Button>
           </SectionHeader>
 
           {estimatedCostRows.length === 0 ? (
-            <p className="text-sm text-muted">No estimated cost entries yet.</p>
+            <p className="text-sm text-muted">{d.empty.estimatedCosts}</p>
           ) : (
             <ul className="flex flex-col gap-2">
               {estimatedCostRows.map((estimatedCost) => (
                 <EntryRow
                   key={estimatedCost.id}
                   description={estimatedCost.description}
-                  meta={estimatedCost.category}
+                  meta={categoryLabel(estimatedCost.category)}
                   amount={estimatedCost.amount}
                   currency={currency}
                   editHref={`/dashboard/projects/${id}/estimated-costs/${estimatedCost.id}/edit`}
+                  editLabel={messages.common.edit}
                   deleteButton={
                     <DeleteEstimatedCostButton
                       estimatedCostId={estimatedCost.id}
@@ -610,23 +631,23 @@ export default async function ProjectDetailPage({
           id="comparison-heading"
           className="mb-3 text-lg font-medium tracking-tight"
         >
-          Estimated vs Actual
+          {d.sections.comparison}
         </h2>
         <Card className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-rule text-muted">
                 <th className={TH}>
-                  <span className="sr-only">Measure</span>
+                  <span className="sr-only">{d.sections.measure}</span>
                 </th>
-                <th className={TH}>Estimated</th>
-                <th className={TH}>Actual</th>
-                <th className="py-2 font-medium whitespace-nowrap">Difference</th>
+                <th className={TH}>{d.sections.estimated}</th>
+                <th className={TH}>{d.sections.actual}</th>
+                <th className="py-2 font-medium whitespace-nowrap">{d.sections.difference}</th>
               </tr>
             </thead>
             <tbody>
               <tr className="border-b border-rule/60">
-                <td className={`${TD} text-muted`}>Revenue</td>
+                <td className={`${TD} text-muted`}>{t.fields.revenue}</td>
                 <td className={TD}>{currency} {formatCents(estimatedRevenueCents)}</td>
                 <td className={TD}>{currency} {formatCents(revenueCents)}</td>
                 <td className={`py-2 whitespace-nowrap ${profitToneClass(revenueDiffCents)}`}>
@@ -634,7 +655,7 @@ export default async function ProjectDetailPage({
                 </td>
               </tr>
               <tr className="border-b border-rule/60">
-                <td className={`${TD} text-muted`}>Costs</td>
+                <td className={`${TD} text-muted`}>{t.fields.costs}</td>
                 <td className={TD}>{currency} {formatCents(estimatedCostCents)}</td>
                 <td className={TD}>{currency} {formatCents(costCents)}</td>
                 <td className={`py-2 whitespace-nowrap ${profitToneClass(-costDiffCents)}`}>
@@ -642,7 +663,7 @@ export default async function ProjectDetailPage({
                 </td>
               </tr>
               <tr className="border-b border-rule/60">
-                <td className={`${TD} text-muted`}>Profit</td>
+                <td className={`${TD} text-muted`}>{t.fields.profit}</td>
                 <td className={`${TD} ${profitToneClass(estimatedProfitCents)}`}>
                   {currency} {formatCents(estimatedProfitCents)}
                 </td>
@@ -654,7 +675,7 @@ export default async function ProjectDetailPage({
                 </td>
               </tr>
               <tr>
-                <td className={`${TD} text-muted`}>Margin</td>
+                <td className={`${TD} text-muted`}>{t.fields.margin}</td>
                 <td className={`${TD} ${profitToneClass(estimatedMarginPercent)}`}>
                   {formatMarginPercent(estimatedMarginPercent)}
                 </td>
@@ -672,23 +693,23 @@ export default async function ProjectDetailPage({
         {/* Cost Variance by Category: same Actual - Estimated convention
             and the same inverted tone as the aggregate Costs row above. */}
         <h3 className="mb-3 mt-8 text-base font-medium tracking-tight">
-          Cost Variance by Category
+          {d.sections.costVariance}
         </h3>
         <Card className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-rule text-muted">
-                <th className={TH}>Category</th>
-                <th className={TH}>Estimated</th>
-                <th className={TH}>Actual</th>
-                <th className="py-2 font-medium whitespace-nowrap">Difference</th>
+                <th className={TH}>{messages.common.category}</th>
+                <th className={TH}>{d.sections.estimated}</th>
+                <th className={TH}>{d.sections.actual}</th>
+                <th className="py-2 font-medium whitespace-nowrap">{d.sections.difference}</th>
               </tr>
             </thead>
             <tbody>
               {costVarianceByCategory.map(
                 ({ category, estimatedCategoryCents, actualCategoryCents, diffCategoryCents }) => (
                   <tr key={category} className="border-b border-rule/60 last:border-b-0">
-                    <td className={`${TD} text-muted`}>{category}</td>
+                    <td className={`${TD} text-muted`}>{categoryLabel(category)}</td>
                     <td className={TD}>{currency} {formatCents(estimatedCategoryCents)}</td>
                     <td className={TD}>{currency} {formatCents(actualCategoryCents)}</td>
                     <td className={`py-2 whitespace-nowrap ${profitToneClass(-diffCategoryCents)}`}>
@@ -707,26 +728,25 @@ export default async function ProjectDetailPage({
         {project.status === "Active" && (
           <>
             <h3 className="mt-8 text-base font-medium tracking-tight">
-              Projected Final Profit
+              {d.sections.projectedTitle}
             </h3>
             <p className="mt-1 text-sm text-muted">
-              If the remaining estimate plays out as planned, on top of what has
-              actually happened so far.
+              {d.sections.projectedIntro}
             </p>
             <Card className="mt-3">
               <dl className="grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-3">
                 <Stat
-                  label="Projected Revenue"
+                  label={d.stats.projectedRevenue}
                   currency={currency}
                   value={formatCents(projectedFinalRevenueCents)}
                 />
                 <Stat
-                  label="Projected Costs"
+                  label={d.stats.projectedCosts}
                   currency={currency}
                   value={formatCents(projectedFinalCostCents)}
                 />
                 <Stat
-                  label="Projected Profit"
+                  label={d.stats.projectedProfit}
                   currency={currency}
                   value={formatCents(projectedFinalProfitCents)}
                   tone={profitToneClass(projectedFinalProfitCents)}
@@ -749,12 +769,12 @@ export default async function ProjectDetailPage({
             id="actions-heading"
             className="text-lg font-medium tracking-tight"
           >
-            Project actions
+            {d.sections.actionsTitle}
           </h2>
           <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start">
             {project.accepted_at ? (
               <p className="text-sm text-muted">
-                This project was accepted on {formatDate(project.accepted_at.slice(0, 10))}.
+                {d.sections.acceptedOn} {formatDate(project.accepted_at.slice(0, 10), locale)}.
               </p>
             ) : (
               <AcceptProjectButton projectId={id} />

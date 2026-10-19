@@ -5,6 +5,7 @@ import TextField from "@/components/TextField";
 import Button from "@/components/Button";
 import type { RevenueFormState } from "@/lib/revenue/actions";
 import type { Revenue } from "@/types/supabase";
+import { useI18n } from "@/lib/i18n/provider";
 
 type RevenueFormProps = {
   action: (
@@ -26,6 +27,7 @@ export default function RevenueForm({
   submitLabel,
 }: RevenueFormProps) {
   const [state, formAction, isPending] = useActionState(action, initialState);
+  const { messages } = useI18n();
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
@@ -35,20 +37,20 @@ export default function RevenueForm({
       )}
 
       <TextField
-        label="Description"
+        label={messages.common.description}
         name="description"
         required
         defaultValue={defaultValues?.description ?? ""}
       />
       <TextField
-        label="Amount"
+        label={messages.common.amount}
         name="amount"
         inputMode="decimal"
         required
         defaultValue={defaultValues?.amount ?? ""}
       />
       <TextField
-        label="Date"
+        label={messages.common.date}
         name="date"
         type="date"
         required
@@ -67,7 +69,7 @@ export default function RevenueForm({
         disabled={isPending}
         className="mt-2"
       >
-        {isPending ? "Saving…" : submitLabel}
+        {isPending ? messages.common.saving : submitLabel}
       </Button>
     </form>
   );

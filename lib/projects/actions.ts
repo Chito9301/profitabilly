@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { STATUSES } from "@/lib/projects/constants";
+import { getMessages } from "@/lib/i18n/server";
 
 export type ProjectFormState = {
   error?: string;
@@ -46,11 +47,15 @@ export async function createProject(
   _prevState: ProjectFormState,
   formData: FormData,
 ): Promise<ProjectFormState> {
+  // The active language only affects the text returned to the user.
+  const { messages } = await getMessages();
+  const t = messages.projects.errors;
+
   const name = requiredField(formData, "name");
   const customerId = requiredField(formData, "customerId");
 
-  if (!name) return { error: "Name is required." };
-  if (!customerId) return { error: "Please select a customer." };
+  if (!name) return { error: t.nameRequired };
+  if (!customerId) return { error: t.selectCustomer };
 
   const supabase = await createClient();
   const {
@@ -63,7 +68,7 @@ export async function createProject(
   if (!user) redirect("/login");
 
   if (!(await customerBelongsToUser(supabase, customerId, user.id))) {
-    return { error: "Please select a valid customer." };
+    return { error: t.invalidCustomer };
   }
 
   const { error } = await supabase.from("projects").insert({
@@ -74,7 +79,7 @@ export async function createProject(
   });
 
   if (error) {
-    return { error: "Could not save the project. Please try again." };
+    return { error: t.saveFailed };
   }
 
   redirect("/dashboard/projects?created=1");
@@ -84,13 +89,17 @@ export async function updateProject(
   _prevState: ProjectFormState,
   formData: FormData,
 ): Promise<ProjectFormState> {
+  // The active language only affects the text returned to the user.
+  const { messages } = await getMessages();
+  const t = messages.projects.errors;
+
   const id = requiredField(formData, "id");
   const name = requiredField(formData, "name");
   const customerId = requiredField(formData, "customerId");
 
-  if (!id) return { error: "Something went wrong. Please try again." };
-  if (!name) return { error: "Name is required." };
-  if (!customerId) return { error: "Please select a customer." };
+  if (!id) return { error: messages.common.genericError };
+  if (!name) return { error: t.nameRequired };
+  if (!customerId) return { error: t.selectCustomer };
 
   const supabase = await createClient();
   const {
@@ -100,7 +109,7 @@ export async function updateProject(
   if (!user) redirect("/login");
 
   if (!(await customerBelongsToUser(supabase, customerId, user.id))) {
-    return { error: "Please select a valid customer." };
+    return { error: t.invalidCustomer };
   }
 
   // .eq("user_id", user.id) scopes the write to rows this user owns —
@@ -119,7 +128,7 @@ export async function updateProject(
 
   if (error || !updated) {
     return {
-      error: "Could not update the project. It may not exist or you may not have access to it.",
+      error: t.updateFailed,
     };
   }
 
@@ -138,6 +147,10 @@ export async function acceptProject(
   _prevState: ProjectFormState,
   _formData: FormData,
 ): Promise<ProjectFormState> {
+  // The active language only affects the text returned to the user.
+  const { messages } = await getMessages();
+  const t = messages.projects.errors;
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -156,7 +169,7 @@ export async function acceptProject(
 
   if (error || !updated) {
     return {
-      error: "Could not accept the project. It may not exist or you may not have access to it.",
+      error: t.acceptFailed,
     };
   }
 
@@ -176,6 +189,10 @@ export async function completeProject(
   _prevState: ProjectFormState,
   _formData: FormData,
 ): Promise<ProjectFormState> {
+  // The active language only affects the text returned to the user.
+  const { messages } = await getMessages();
+  const t = messages.projects.errors;
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -194,7 +211,7 @@ export async function completeProject(
 
   if (error || !updated) {
     return {
-      error: "Could not mark the project as completed. It may not exist, may not be Active, or you may not have access to it.",
+      error: t.completeFailed,
     };
   }
 
@@ -206,6 +223,10 @@ export async function deleteProject(
   _prevState: ProjectFormState,
   _formData: FormData,
 ): Promise<ProjectFormState> {
+  // The active language only affects the text returned to the user.
+  const { messages } = await getMessages();
+  const t = messages.projects.errors;
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -230,15 +251,15 @@ export async function deleteProject(
     // ON DELETE RESTRICT), so the delete was correctly rejected.
     if (error.code === "23503") {
       return {
-        error: "Cannot delete this project because it has revenue or costs associated with it.",
+        error: t.deleteHasEntries,
       };
     }
-    return { error: "Could not delete the project. Please try again." };
+    return { error: t.deleteFailed };
   }
 
   if (!deleted) {
     return {
-      error: "Could not delete the project. It may not exist or you may not have access to it.",
+      error: t.deleteNotFound,
     };
   }
 

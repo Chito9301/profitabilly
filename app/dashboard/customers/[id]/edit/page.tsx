@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { updateCustomer } from "@/lib/customers/actions";
+import { getMessages } from "@/lib/i18n/server";
 import CustomerForm from "../../CustomerForm";
 
 export default async function EditCustomerPage({
@@ -30,23 +31,25 @@ export default async function EditCustomerPage({
 
   if (!customer) notFound();
 
+  const { messages } = await getMessages();
+
   return (
     <main className="mx-auto max-w-md px-6 py-12">
       <Link
         href="/dashboard/customers"
         className="text-sm text-muted underline underline-offset-2"
       >
-        ← Customers
+        ← {messages.nav.customers}
       </Link>
 
       <h1 className="mb-6 mt-2 text-2xl font-medium tracking-tight">
-        Edit Customer
+        {messages.customers.editTitle}
       </h1>
 
       <CustomerForm
         action={updateCustomer}
         defaultValues={customer}
-        submitLabel="Save changes"
+        submitLabel={messages.customers.saveChanges}
       />
     </main>
   );

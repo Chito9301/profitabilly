@@ -4,14 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 import Button from "@/components/Button";
 import StatusBadge from "@/components/StatusBadge";
 import DeleteProjectButton from "./DeleteProjectButton";
+import { getMessages } from "@/lib/i18n/server";
 import { sumCents, formatCents, calculateMarginPercent, formatMarginPercent, profitToneClass } from "@/lib/finance/money";
 import type { Project } from "@/types/supabase";
-
-const SUCCESS_MESSAGES: Record<string, string> = {
-  created: "Project added.",
-  updated: "Project updated.",
-  deleted: "Project deleted.",
-};
 
 export default async function ProjectsPage({
   searchParams,
@@ -20,6 +15,18 @@ export default async function ProjectsPage({
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const params = await searchParams;
+  const { messages } = await getMessages();
+  const t = messages.projects;
+
+  // Query-string flags are unchanged; only the text shown for each comes
+  // from the active dictionary.
+  const SUCCESS_MESSAGES: Record<string, string> = {
+    created: t.messages.created,
+    updated: t.messages.updated,
+    deleted: t.messages.deleted,
+  };
+  const statusLabel = (status: string) =>
+    t.status[status as keyof typeof t.status] ?? status;
 
   const supabase = await createClient();
   const {
@@ -106,13 +113,13 @@ export default async function ProjectsPage({
   return (
     <main className="mx-auto max-w-4xl px-6 py-12">
       <Link href="/dashboard" className="text-sm text-muted underline underline-offset-2">
-        ← Dashboard
+        ← {messages.nav.dashboard}
       </Link>
 
       <div className="mb-8 mt-2 flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-medium tracking-tight">Projects</h1>
+        <h1 className="text-2xl font-medium tracking-tight">{t.title}</h1>
         <Button href="/dashboard/projects/new" variant="primary">
-          Add Project
+          {t.add}
         </Button>
       </div>
 
@@ -127,9 +134,9 @@ export default async function ProjectsPage({
 
       {rows.length === 0 ? (
         <div className="flex flex-col items-center gap-4 rounded-md border border-dashed border-rule py-16 text-center">
-          <p className="text-muted">No projects yet.</p>
+          <p className="text-muted">{t.empty}</p>
           <Button href="/dashboard/projects/new" variant="primary">
-            Add Project
+            {t.add}
           </Button>
         </div>
       ) : (
@@ -139,14 +146,14 @@ export default async function ProjectsPage({
           <table className="hidden w-full text-left text-sm md:table">
             <thead>
               <tr className="border-b border-rule text-muted">
-                <th className="py-2 pr-4 font-medium">Name</th>
-                <th className="py-2 pr-4 font-medium">Customer</th>
-                <th className="py-2 pr-4 font-medium">Status</th>
-                <th className="py-2 pr-4 font-medium">Revenue</th>
-                <th className="py-2 pr-4 font-medium">Costs</th>
-                <th className="py-2 pr-4 font-medium">Profit</th>
-                <th className="py-2 pr-4 font-medium">Margin</th>
-                <th className="py-2 font-medium">Actions</th>
+                <th className="py-2 pr-4 font-medium">{messages.common.name}</th>
+                <th className="py-2 pr-4 font-medium">{t.fields.customer}</th>
+                <th className="py-2 pr-4 font-medium">{messages.common.status}</th>
+                <th className="py-2 pr-4 font-medium">{t.fields.revenue}</th>
+                <th className="py-2 pr-4 font-medium">{t.fields.costs}</th>
+                <th className="py-2 pr-4 font-medium">{t.fields.profit}</th>
+                <th className="py-2 pr-4 font-medium">{t.fields.margin}</th>
+                <th className="py-2 font-medium">{messages.common.actions}</th>
               </tr>
             </thead>
             <tbody>
@@ -167,7 +174,10 @@ export default async function ProjectsPage({
                     {customerNameById.get(project.customer_id) ?? "—"}
                   </td>
                   <td className="py-3 pr-4">
-                    <StatusBadge status={project.status} />
+                    <StatusBadge
+                      status={project.status}
+                      label={statusLabel(project.status)}
+                    />
                   </td>
                   <td className="py-3 pr-4 text-muted">
                     {currency} {formatCents(revenueCents)}
@@ -187,7 +197,7 @@ export default async function ProjectsPage({
                         href={`/dashboard/projects/${project.id}/edit`}
                         className="text-sm underline underline-offset-2"
                       >
-                        Edit
+                        {messages.common.edit}
                       </Link>
                       <DeleteProjectButton projectId={project.id} />
                     </div>
@@ -218,26 +228,29 @@ export default async function ProjectsPage({
                       {customerNameById.get(project.customer_id) ?? "—"}
                     </p>
                   </div>
-                  <StatusBadge status={project.status} />
+                  <StatusBadge
+                      status={project.status}
+                      label={statusLabel(project.status)}
+                    />
                 </div>
 
                 <div className="mt-3 grid grid-cols-4 gap-2 text-center text-xs">
                   <div>
-                    <p className="text-muted">Revenue</p>
+                    <p className="text-muted">{t.fields.revenue}</p>
                     <p>{currency} {formatCents(revenueCents)}</p>
                   </div>
                   <div>
-                    <p className="text-muted">Costs</p>
+                    <p className="text-muted">{t.fields.costs}</p>
                     <p>{currency} {formatCents(costCents)}</p>
                   </div>
                   <div>
-                    <p className="text-muted">Profit</p>
+                    <p className="text-muted">{t.fields.profit}</p>
                     <p className={profitToneClass(profitCents)}>
                       {currency} {formatCents(profitCents)}
                     </p>
                   </div>
                   <div>
-                    <p className="text-muted">Margin</p>
+                    <p className="text-muted">{t.fields.margin}</p>
                     <p className={profitToneClass(marginPercent)}>
                       {formatMarginPercent(marginPercent)}
                     </p>
@@ -249,7 +262,7 @@ export default async function ProjectsPage({
                     href={`/dashboard/projects/${project.id}/edit`}
                     className="text-sm underline underline-offset-2"
                   >
-                    Edit
+                    {messages.common.edit}
                   </Link>
                   <DeleteProjectButton projectId={project.id} />
                 </div>

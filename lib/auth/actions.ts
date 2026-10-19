@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { friendlyAuthError } from "@/lib/auth/errors";
+import { getMessages } from "@/lib/i18n/server";
 
 export type AuthFormState = {
   error?: string;
@@ -23,6 +24,11 @@ export async function signUp(
   _prevState: AuthFormState,
   formData: FormData,
 ): Promise<AuthFormState> {
+  // Active language (jw_locale cookie / Accept-Language); only the text
+  // returned to the user depends on it, never the logic below.
+  const { messages } = await getMessages();
+  const t = messages.auth;
+
   const fullName = requireField(formData, "fullName");
   const email = requireField(formData, "email");
   const password = formData.get("password");
@@ -41,13 +47,13 @@ export async function signUp(
     !country ||
     !currency
   ) {
-    return { error: "Please fill in all fields." };
+    return { error: t.errors.fillAllFields };
   }
 
   // Check locally before calling Supabase so a short password reads as
   // an immediate, specific message rather than a round-trip error.
   if (password.length < 6) {
-    return { error: "Password must be at least 6 characters." };
+    return { error: t.errors.passwordMin };
   }
 
   const supabase = await createClient();
@@ -55,7 +61,7 @@ export async function signUp(
   const { data, error } = await supabase.auth.signUp({ email, password });
 
   if (error) {
-    return { error: friendlyAuthError(error.message) };
+    return { error: friendlyAuthError(error.message, t.errors) };
   }
 
   // No session means email confirmation is required before the account
@@ -63,7 +69,7 @@ export async function signUp(
   // the profile update below since auth.uid() is still null.
   if (!data.session || !data.user) {
     return {
-      message: "Check your email to confirm your account, then log in.",
+      message: t.messages.checkEmail,
     };
   }
 
@@ -89,8 +95,7 @@ export async function signUp(
 
   if (profileError) {
     return {
-      message:
-        "Your account was created, but we couldn't save your business details. You're signed in — go to /dashboard to continue.",
+      message: t.messages.profileSaveFailed,
     };
   }
 
@@ -101,11 +106,16 @@ export async function logIn(
   _prevState: AuthFormState,
   formData: FormData,
 ): Promise<AuthFormState> {
+  // Active language (jw_locale cookie / Accept-Language); only the text
+  // returned to the user depends on it, never the logic below.
+  const { messages } = await getMessages();
+  const t = messages.auth;
+
   const email = requireField(formData, "email");
   const password = formData.get("password");
 
   if (!email || typeof password !== "string" || password.length === 0) {
-    return { error: "Please enter your email and password." };
+    return { error: t.errors.enterEmailPassword };
   }
 
   const supabase = await createClient();
@@ -115,7 +125,7 @@ export async function logIn(
   });
 
   if (error) {
-    return { error: friendlyAuthError(error.message) };
+    return { error: friendlyAuthError(error.message, t.errors) };
   }
 
   redirect("/dashboard");
@@ -132,10 +142,15 @@ export async function requestPasswordReset(
   _prevState: AuthFormState,
   formData: FormData,
 ): Promise<AuthFormState> {
+  // Active language (jw_locale cookie / Accept-Language); only the text
+  // returned to the user depends on it, never the logic below.
+  const { messages } = await getMessages();
+  const t = messages.auth;
+
   const email = requireField(formData, "email");
 
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return { error: "Enter a valid email address." };
+    return { error: t.errors.invalidEmail };
   }
 
   const requestHeaders = await headers();
@@ -144,18 +159,18 @@ export async function requestPasswordReset(
   const origin = configuredOrigin || requestOrigin;
 
   if (!origin) {
-    return { error: "We couldn't start password recovery. Please try again." };
+    return { error: t.errors.recoveryStart };
   }
 
   let redirectTo: string;
   try {
     const parsedOrigin = new URL(origin);
     if (parsedOrigin.protocol !== "https:" && parsedOrigin.hostname !== "localhost") {
-      return { error: "We couldn't start password recovery. Please try again." };
+      return { error: t.errors.recoveryStart };
     }
     redirectTo = new URL("/auth/callback?next=/reset-password", parsedOrigin).toString();
   } catch {
-    return { error: "We couldn't start password recovery. Please try again." };
+    return { error: t.errors.recoveryStart };
   }
 
   const supabase = await createClient();
@@ -164,13 +179,13 @@ export async function requestPasswordReset(
   });
 
   if (error) {
-    return { error: friendlyAuthError(error.message) };
+    return { error: friendlyAuthError(error.message, t.errors) };
   }
 
   // Keep the response identical whether or not the email belongs to an
   // account, so the form does not disclose registered addresses.
   return {
-    message: "If an account exists for that email, a password reset link has been sent. Check your inbox and spam folder.",
+    message: t.messages.resetSent,
   };
 }
 
@@ -178,6 +193,11 @@ export async function updatePassword(
   _prevState: AuthFormState,
   formData: FormData,
 ): Promise<AuthFormState> {
+  // Active language (jw_locale cookie / Accept-Language); only the text
+  // returned to the user depends on it, never the logic below.
+  const { messages } = await getMessages();
+  const t = messages.auth;
+
   const password = formData.get("password");
   const confirmPassword = formData.get("confirmPassword");
 
@@ -187,15 +207,15 @@ export async function updatePassword(
     !password ||
     !confirmPassword
   ) {
-    return { error: "Please enter and confirm your new password." };
+    return { error: t.errors.enterConfirmPassword };
   }
 
   if (password.length < 6) {
-    return { error: "Password must be at least 6 characters." };
+    return { error: t.errors.passwordMin };
   }
 
   if (password !== confirmPassword) {
-    return { error: "The passwords do not match." };
+    return { error: t.errors.passwordsMismatch };
   }
 
   const supabase = await createClient();
@@ -206,14 +226,14 @@ export async function updatePassword(
 
   if (userError || !user) {
     return {
-      error: "Your recovery session has expired. Request a new password reset link.",
+      error: t.linkErrors.recoverySessionExpired,
     };
   }
 
   const { error } = await supabase.auth.updateUser({ password });
 
   if (error) {
-    return { error: friendlyAuthError(error.message) };
+    return { error: friendlyAuthError(error.message, t.errors) };
   }
 
   redirect("/dashboard");

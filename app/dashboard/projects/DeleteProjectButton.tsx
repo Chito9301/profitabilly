@@ -2,6 +2,7 @@
 
 import { useActionState, type FormEvent } from "react";
 import { deleteProject, type ProjectFormState } from "@/lib/projects/actions";
+import { useI18n } from "@/lib/i18n/provider";
 
 const initialState: ProjectFormState = {};
 
@@ -10,6 +11,8 @@ export default function DeleteProjectButton({
 }: {
   projectId: string;
 }) {
+  const { messages } = useI18n();
+
   // Binding the id gives deleteProject the (prevState, formData) shape
   // useActionState expects, while still scoping the delete to this row.
   const [state, formAction, isPending] = useActionState(
@@ -22,7 +25,7 @@ export default function DeleteProjectButton({
       <form
         action={formAction}
         onSubmit={(e: FormEvent<HTMLFormElement>) => {
-          if (!confirm("Delete this project? This can't be undone.")) {
+          if (!confirm(messages.projects.confirmDelete)) {
             e.preventDefault();
           }
         }}
@@ -32,7 +35,7 @@ export default function DeleteProjectButton({
           disabled={isPending}
           className="text-sm text-danger underline underline-offset-2 disabled:opacity-50"
         >
-          {isPending ? "Deleting…" : "Delete"}
+          {isPending ? messages.common.deleting : messages.common.delete}
         </button>
       </form>
       {state.error && (

@@ -8,6 +8,7 @@ import { FIELD_CONTROL_STYLES, FIELD_LABEL_STYLES } from "@/components/fieldStyl
 import type { ProjectFormState } from "@/lib/projects/actions";
 import { STATUSES } from "@/lib/projects/constants";
 import type { Project } from "@/types/supabase";
+import { useI18n } from "@/lib/i18n/provider";
 
 type CustomerOption = { id: string; name: string };
 
@@ -31,6 +32,8 @@ export default function ProjectForm({
   submitLabel,
 }: ProjectFormProps) {
   const [state, formAction, isPending] = useActionState(action, initialState);
+  const { messages } = useI18n();
+  const t = messages.projects;
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
@@ -39,7 +42,7 @@ export default function ProjectForm({
       )}
 
       <TextField
-        label="Name"
+        label={messages.common.name}
         name="name"
         required
         defaultValue={defaultValues?.name ?? ""}
@@ -47,7 +50,7 @@ export default function ProjectForm({
 
       <div className="flex flex-col gap-1.5">
         <label htmlFor="customerId" className={FIELD_LABEL_STYLES}>
-          Customer
+          {t.fields.customer}
         </label>
         <select
           id="customerId"
@@ -57,7 +60,7 @@ export default function ProjectForm({
           className={FIELD_CONTROL_STYLES}
         >
           <option value="" disabled>
-            Select a customer
+            {t.fields.selectCustomer}
           </option>
           {customers.map((customer) => (
             <option key={customer.id} value={customer.id}>
@@ -68,9 +71,10 @@ export default function ProjectForm({
       </div>
 
       <SelectField
-        label="Status"
+        label={messages.common.status}
         name="status"
         options={STATUSES}
+        optionLabels={t.status}
         defaultValue={defaultValues?.status ?? "Active"}
         required
       />
@@ -87,7 +91,7 @@ export default function ProjectForm({
         disabled={isPending}
         className="mt-2"
       >
-        {isPending ? "Saving…" : submitLabel}
+        {isPending ? messages.common.saving : submitLabel}
       </Button>
     </form>
   );

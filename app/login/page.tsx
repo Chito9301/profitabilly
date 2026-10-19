@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { getMessages } from "@/lib/i18n/server";
 import LoginForm from "./LoginForm";
 
 export default async function LoginPage({
@@ -9,6 +11,7 @@ export default async function LoginPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const { error: authError } = await searchParams;
+  const t = (await getMessages()).messages.auth;
   const supabase = await createClient();
   const {
     data: { user },
@@ -18,29 +21,30 @@ export default async function LoginPage({
   if (user) redirect("/dashboard");
 
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center px-6">
+    <main className="relative flex min-h-dvh flex-col items-center justify-center px-6">
+      <LanguageSwitcher className="absolute right-3 top-2" />
       <div className="w-full max-w-sm">
         <h1 className="text-center text-2xl font-medium tracking-tight">
-          Log in
+          {t.login.title}
         </h1>
 
         {authError === "recovery_link_invalid" && (
           <p role="alert" className="mt-6 text-center text-sm text-danger">
-            This password reset link is invalid or has expired. Request a new one.
+            {t.linkErrors.recoveryLinkInvalid}
           </p>
         )}
         {authError === "recovery_session_missing" && (
           <p role="alert" className="mt-6 text-center text-sm text-danger">
-            Your recovery session has expired. Request a new password reset link.
+            {t.linkErrors.recoverySessionExpired}
           </p>
         )}
 
         <LoginForm />
 
         <p className="mt-6 text-center text-sm text-muted">
-          Don&apos;t have an account?{" "}
+          {t.login.noAccount}{" "}
           <Link href="/signup" className="text-ink underline underline-offset-2">
-            Sign up
+            {t.login.signUpLink}
           </Link>
         </p>
       </div>

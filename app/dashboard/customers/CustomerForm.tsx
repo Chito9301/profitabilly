@@ -8,6 +8,7 @@ import Button from "@/components/Button";
 import type { CustomerFormState } from "@/lib/customers/actions";
 import { STATUSES } from "@/lib/customers/constants";
 import type { Customer } from "@/types/supabase";
+import { useI18n } from "@/lib/i18n/provider";
 
 type CustomerFormProps = {
   action: (
@@ -27,6 +28,8 @@ export default function CustomerForm({
   submitLabel,
 }: CustomerFormProps) {
   const [state, formAction, isPending] = useActionState(action, initialState);
+  const { messages } = useI18n();
+  const t = messages.customers;
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
@@ -35,42 +38,43 @@ export default function CustomerForm({
       )}
 
       <TextField
-        label="Name"
+        label={t.fields.name}
         name="name"
         required
         defaultValue={defaultValues?.name ?? ""}
       />
       <TextField
-        label="Company"
+        label={t.fields.company}
         name="company"
         defaultValue={defaultValues?.company ?? ""}
       />
       <TextField
-        label="Email"
+        label={messages.common.email}
         name="email"
         type="email"
         defaultValue={defaultValues?.email ?? ""}
       />
       <TextField
-        label="Phone"
+        label={t.fields.phone}
         name="phone"
         type="tel"
         defaultValue={defaultValues?.phone ?? ""}
       />
       <TextField
-        label="Address"
+        label={t.fields.address}
         name="address"
         defaultValue={defaultValues?.address ?? ""}
       />
       <TextareaField
-        label="Notes"
+        label={t.fields.notes}
         name="notes"
         defaultValue={defaultValues?.notes ?? ""}
       />
       <SelectField
-        label="Status"
+        label={messages.common.status}
         name="status"
         options={STATUSES}
+        optionLabels={t.status}
         defaultValue={defaultValues?.status ?? "Active"}
         required
       />
@@ -87,7 +91,7 @@ export default function CustomerForm({
         disabled={isPending}
         className="mt-2"
       >
-        {isPending ? "Saving…" : submitLabel}
+        {isPending ? messages.common.saving : submitLabel}
       </Button>
     </form>
   );

@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { STATUSES } from "@/lib/customers/constants";
+import { getMessages } from "@/lib/i18n/server";
 
 export type CustomerFormState = {
   error?: string;
@@ -44,9 +45,13 @@ export async function createCustomer(
   _prevState: CustomerFormState,
   formData: FormData,
 ): Promise<CustomerFormState> {
+  // The active language only affects the text returned to the user.
+  const { messages } = await getMessages();
+  const t = messages.customers.errors;
+
   const name = requiredField(formData, "name");
   if (!name) {
-    return { error: "Name is required." };
+    return { error: t.nameRequired };
   }
 
   const supabase = await createClient();
@@ -66,7 +71,7 @@ export async function createCustomer(
   });
 
   if (error) {
-    return { error: "Could not save the customer. Please try again." };
+    return { error: t.saveFailed };
   }
 
   redirect("/dashboard/customers?created=1");
@@ -76,13 +81,17 @@ export async function updateCustomer(
   _prevState: CustomerFormState,
   formData: FormData,
 ): Promise<CustomerFormState> {
+  // The active language only affects the text returned to the user.
+  const { messages } = await getMessages();
+  const t = messages.customers.errors;
+
   const id = requiredField(formData, "id");
   const name = requiredField(formData, "name");
   if (!id) {
-    return { error: "Something went wrong. Please try again." };
+    return { error: messages.common.genericError };
   }
   if (!name) {
-    return { error: "Name is required." };
+    return { error: t.nameRequired };
   }
 
   const supabase = await createClient();
@@ -112,7 +121,7 @@ export async function updateCustomer(
 
   if (error || !updated) {
     return {
-      error: "Could not update the customer. It may not exist or you may not have access to it.",
+      error: t.updateFailed,
     };
   }
 
@@ -124,6 +133,10 @@ export async function deleteCustomer(
   _prevState: CustomerFormState,
   _formData: FormData,
 ): Promise<CustomerFormState> {
+  // The active language only affects the text returned to the user.
+  const { messages } = await getMessages();
+  const t = messages.customers.errors;
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -152,15 +165,15 @@ export async function deleteCustomer(
     // ON DELETE RESTRICT), so the delete was correctly rejected.
     if (error.code === "23503") {
       return {
-        error: "Cannot delete this customer because it has projects associated with it.",
+        error: t.deleteHasProjects,
       };
     }
-    return { error: "Could not delete the customer. Please try again." };
+    return { error: t.deleteFailed };
   }
 
   if (!deleted) {
     return {
-      error: "Could not delete the customer. It may not exist or you may not have access to it.",
+      error: t.deleteNotFound,
     };
   }
 

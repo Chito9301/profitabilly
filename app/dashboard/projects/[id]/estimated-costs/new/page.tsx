@@ -3,6 +3,7 @@ import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createEstimatedCost } from "@/lib/estimated-costs/actions";
 import EstimatedCostForm from "../../EstimatedCostForm";
+import { getMessages } from "@/lib/i18n/server";
 
 export default async function NewEstimatedCostPage({
   params,
@@ -25,23 +26,25 @@ export default async function NewEstimatedCostPage({
     .single();
   if (!project) notFound();
 
+  const { messages } = await getMessages();
+
   return (
     <main className="mx-auto max-w-md px-6 py-12">
       <Link
         href={`/dashboard/projects/${projectId}`}
         className="text-sm text-muted underline underline-offset-2"
       >
-        ← Project
+        ← {messages.projects.backToProject}
       </Link>
 
       <h1 className="mb-6 mt-2 text-2xl font-medium tracking-tight">
-        Add Estimated Cost
+        {messages.projectDetail.buttons.addEstimatedCost}
       </h1>
 
       <EstimatedCostForm
         action={createEstimatedCost}
         projectId={projectId}
-        submitLabel="Add Estimated Cost"
+        submitLabel={messages.projectDetail.buttons.addEstimatedCost}
       />
     </main>
   );

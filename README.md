@@ -59,6 +59,58 @@ construction, contractors, and other service businesses.
   heading, "Add Project" action in the header. Data queries and
   calculations are unchanged.
 
+- **Mini-Sprint 51** — Projects module completed (EN/ES): project detail
+  page (profitability check, actual / estimated / comparison / projected
+  sections, success notices, month names in dates), the revenue, cost,
+  estimated-revenue and estimated-cost pages, forms and delete buttons,
+  cost-category labels (stored values stay `Materials`, `Labor`, …) and
+  every message returned by `lib/revenue`, `lib/costs`,
+  `lib/estimated-revenue` and `lib/estimated-costs` actions. Validation
+  messages from `lib/finance/validation.ts` are translated at the call
+  site via `lib/i18n/finance-errors.ts`; `lib/finance` itself is
+  unchanged. Queries, calculations, redirects and field names are
+  unchanged.
+
+- **Mini-Sprint 50** — Projects module, first part, translated (EN/ES):
+  list (table and mobile cards, status labels, success notices), create
+  and edit pages and form, delete button and confirmation, the Accept /
+  Mark as Completed buttons, and every error message returned by
+  `lib/projects/actions.ts`. Stored statuses, queries, redirects, field
+  names and financial calculations are unchanged. The project
+  detail page and the revenue / cost / estimated pages were completed in
+  Mini-Sprint 51.
+
+- **Mini-Sprint 49** — Customers module translated (EN/ES) with the
+  existing i18n system: list (title, table headers, mobile cards, empty
+  state, success notices, month names in dates), create/edit pages and
+  form, delete button and confirmation, status labels, and the error
+  messages returned by `lib/customers/actions.ts`. Stored values
+  (`Active`/`Archived`), field names, queries and redirects are
+  unchanged. Shared keys added under `common.*`. `StatusBadge` gained an
+  optional display `label`. Projects, Dashboard and other modules remain
+  English.
+
+- **Mini-Sprint 48** — Public and auth pages translated (EN/ES) with the
+  Sprint 47 i18n system: home, login, signup, forgot-password and
+  reset-password (labels, buttons, loading states, validation and
+  success/error messages, `/login?error=` notices), plus the ES/EN
+  switcher at the top-right of each of those pages. `friendlyAuthError`
+  keeps its matching conditions and only returns text from the active
+  dictionary. Business-type options show translated labels but still
+  submit the stored English values. No change to auth flow, redirects,
+  field names, Supabase or routes. Dashboard, Customers and Projects
+  remain English.
+
+- **Mini-Sprint 47** — i18n foundation (English/Spanish), no new
+  dependency. Typed dictionaries in `lib/i18n/messages/`; language is
+  resolved on the server from the `jw_locale` cookie, else the browser's
+  preferred language (`es`/`es-*` → Spanish, anything else → English);
+  `<html lang>` follows it; an ES/EN switcher in `DashboardNav` sets the
+  cookie (1 year, `SameSite=Lax`, `Secure` in production). Only the
+  global navigation and the switcher are translated so far — other pages
+  stay in English until later mini-sprints. Feedback link/email/subject
+  unchanged. See ARCHITECTURE.md → "Internationalization".
+
 - **Mini-Sprint 44** — Rebrand to **JobWorth** and sidebar navigation.
   Visible brand, page title, PWA name and the homepage heading now say
   JobWorth; icons (favicon, PWA 192/512/maskable, apple-touch) were
@@ -76,7 +128,7 @@ construction, contractors, and other service businesses.
   link added to `components/DashboardNav.tsx`, to the right of
   Dashboard/Projects/Customers (`ml-auto`), in smaller/muted text with
   a tiny envelope icon (inline SVG, no icon library added). Opens the
-  user's mail app addressed to `miproyecto353@gmail.com` with subject
+  user's mail app addressed to `jobwhortsupport@gmail.com` with subject
   "Profitabilly Feedback" and an empty body. It is intentionally not
   part of the `LINKS` array — no route, no active-state underline —
   since it's a utility link, not an app section.

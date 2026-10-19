@@ -2,6 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getMessages } from "@/lib/i18n/server";
+import { translateFinanceError } from "@/lib/i18n/finance-errors";
 import {
   validateDescription,
   validateAmount,
@@ -23,15 +25,18 @@ export async function createRevenue(
   _prevState: RevenueFormState,
   formData: FormData,
 ): Promise<RevenueFormState> {
+  // The active language only affects the text returned to the user.
+  const { messages } = await getMessages();
+
   const projectId = requiredField(formData, "projectId");
-  if (!projectId) return { error: "Something went wrong. Please try again." };
+  if (!projectId) return { error: messages.common.genericError };
 
   const description = validateDescription(formData);
-  if ("error" in description) return { error: description.error };
+  if ("error" in description) return { error: translateFinanceError(description.error, messages) };
   const amount = validateAmount(formData);
-  if ("error" in amount) return { error: amount.error };
+  if ("error" in amount) return { error: translateFinanceError(amount.error, messages) };
   const date = validateDate(formData);
-  if ("error" in date) return { error: date.error };
+  if ("error" in date) return { error: translateFinanceError(date.error, messages) };
 
   const supabase = await createClient();
   const {
@@ -44,7 +49,7 @@ export async function createRevenue(
   if (!user) redirect("/login");
 
   if (!(await projectBelongsToUser(supabase, projectId, user.id))) {
-    return { error: "Please select a valid project." };
+    return { error: messages.entries.errors.invalidProject };
   }
 
   const { error } = await supabase.from("revenues").insert({
@@ -56,7 +61,7 @@ export async function createRevenue(
   });
 
   if (error) {
-    return { error: "Could not save the revenue entry. Please try again." };
+    return { error: messages.entries.errors.revenueSaveFailed };
   }
 
   redirect(`/dashboard/projects/${projectId}?revenueCreated=1`);
@@ -66,16 +71,19 @@ export async function updateRevenue(
   _prevState: RevenueFormState,
   formData: FormData,
 ): Promise<RevenueFormState> {
+  // The active language only affects the text returned to the user.
+  const { messages } = await getMessages();
+
   const id = requiredField(formData, "id");
   const projectId = requiredField(formData, "projectId");
-  if (!id || !projectId) return { error: "Something went wrong. Please try again." };
+  if (!id || !projectId) return { error: messages.common.genericError };
 
   const description = validateDescription(formData);
-  if ("error" in description) return { error: description.error };
+  if ("error" in description) return { error: translateFinanceError(description.error, messages) };
   const amount = validateAmount(formData);
-  if ("error" in amount) return { error: amount.error };
+  if ("error" in amount) return { error: translateFinanceError(amount.error, messages) };
   const date = validateDate(formData);
-  if ("error" in date) return { error: date.error };
+  if ("error" in date) return { error: translateFinanceError(date.error, messages) };
 
   const supabase = await createClient();
   const {
@@ -85,7 +93,7 @@ export async function updateRevenue(
   if (!user) redirect("/login");
 
   if (!(await projectBelongsToUser(supabase, projectId, user.id))) {
-    return { error: "Please select a valid project." };
+    return { error: messages.entries.errors.invalidProject };
   }
 
   // .eq("user_id", user.id) scopes the write to rows this user owns —
@@ -114,7 +122,7 @@ export async function updateRevenue(
 
   if (error || !updated) {
     return {
-      error: "Could not update the revenue entry. It may not exist or you may not have access to it.",
+      error: messages.entries.errors.revenueUpdateFailed,
     };
   }
 
@@ -127,6 +135,9 @@ export async function deleteRevenue(
   _prevState: RevenueFormState,
   _formData: FormData,
 ): Promise<RevenueFormState> {
+  // The active language only affects the text returned to the user.
+  const { messages } = await getMessages();
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -148,7 +159,7 @@ export async function deleteRevenue(
 
   if (error || !deleted) {
     return {
-      error: "Could not delete the revenue entry. It may not exist or you may not have access to it.",
+      error: messages.entries.errors.revenueDeleteFailed,
     };
   }
 

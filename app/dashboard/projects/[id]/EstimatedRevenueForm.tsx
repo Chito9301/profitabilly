@@ -5,6 +5,7 @@ import TextField from "@/components/TextField";
 import Button from "@/components/Button";
 import type { EstimatedRevenueFormState } from "@/lib/estimated-revenue/actions";
 import type { EstimatedRevenue } from "@/types/supabase";
+import { useI18n } from "@/lib/i18n/provider";
 
 type EstimatedRevenueFormProps = {
   action: (
@@ -26,6 +27,7 @@ export default function EstimatedRevenueForm({
   submitLabel,
 }: EstimatedRevenueFormProps) {
   const [state, formAction, isPending] = useActionState(action, initialState);
+  const { messages } = useI18n();
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
@@ -35,13 +37,13 @@ export default function EstimatedRevenueForm({
       )}
 
       <TextField
-        label="Description"
+        label={messages.common.description}
         name="description"
         required
         defaultValue={defaultValues?.description ?? ""}
       />
       <TextField
-        label="Amount"
+        label={messages.common.amount}
         name="amount"
         inputMode="decimal"
         required
@@ -60,7 +62,7 @@ export default function EstimatedRevenueForm({
         disabled={isPending}
         className="mt-2"
       >
-        {isPending ? "Saving…" : submitLabel}
+        {isPending ? messages.common.saving : submitLabel}
       </Button>
     </form>
   );
