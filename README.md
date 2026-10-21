@@ -59,6 +59,15 @@ construction, contractors, and other service businesses.
   heading, "Add Project" action in the header. Data queries and
   calculations are unchanged.
 
+- **Mini-Sprint 53** — Financial calculations centralized. The totals,
+  profit, margin, estimated-vs-actual differences, cost variance by
+  category and projected final profit that were written inline in the
+  Projects list, the Project detail page and the Dashboard now live in
+  the new `lib/finance/summary.ts`, as a literal move of the same code
+  (same `sumCents` / `calculateMarginPercent` from `money.ts`, which is
+  unchanged). Formulas, rounding, queries and rendered output are
+  unchanged. No new dependency; no export feature yet.
+
 - **Mini-Sprint 51** — Projects module completed (EN/ES): project detail
   page (profitability check, actual / estimated / comparison / projected
   sections, success notices, month names in dates), the revenue, cost,

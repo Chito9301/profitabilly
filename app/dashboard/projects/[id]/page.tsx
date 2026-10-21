@@ -12,7 +12,13 @@ import DeleteEstimatedCostButton from "./DeleteEstimatedCostButton";
 import AcceptProjectButton from "./AcceptProjectButton";
 import CompleteProjectButton from "./CompleteProjectButton";
 import { getMessages } from "@/lib/i18n/server";
-import { sumCents, formatCents, calculateMarginPercent, formatMarginPercent, profitToneClass } from "@/lib/finance/money";
+import { formatCents, formatMarginPercent, profitToneClass } from "@/lib/finance/money";
+import {
+  calculateCostVarianceByCategory,
+  calculateProjectedFinal,
+  calculateTotals,
+  compareActualToEstimate,
+} from "@/lib/finance/summary";
 import { CATEGORIES } from "@/lib/costs/constants";
 import type { Revenue, Cost, EstimatedRevenue, EstimatedCost } from "@/types/supabase";
 
@@ -216,10 +222,14 @@ export default async function ProjectDetailPage({
   const revenueRows: Revenue[] = revenues ?? [];
   const costRows: Cost[] = costs ?? [];
 
-  const revenueCents = sumCents(revenueRows.map((r) => r.amount));
-  const costCents = sumCents(costRows.map((c) => c.amount));
-  const profitCents = revenueCents - costCents;
-  const marginPercent = calculateMarginPercent(profitCents, revenueCents);
+  // Totals, comparison, category variance and projection are computed in
+  // lib/finance/summary.ts (Mini-Sprint 53) — the same logic that used to
+  // be written inline here, moved unchanged.
+  const actualTotals = calculateTotals(
+    revenueRows.map((r) => r.amount),
+    costRows.map((c) => c.amount),
+  );
+  const { revenueCents, costCents, profitCents, marginPercent } = actualTotals;
 
   // Estimated revenue/costs: separate tables from actual revenues/costs
   // (Sprint 18/19 decision — never mixed in one table), but scoped and
@@ -242,13 +252,16 @@ export default async function ProjectDetailPage({
   const estimatedRevenueRows: EstimatedRevenue[] = estimatedRevenues ?? [];
   const estimatedCostRows: EstimatedCost[] = estimatedCosts ?? [];
 
-  const estimatedRevenueCents = sumCents(estimatedRevenueRows.map((r) => r.amount));
-  const estimatedCostCents = sumCents(estimatedCostRows.map((c) => c.amount));
-  const estimatedProfitCents = estimatedRevenueCents - estimatedCostCents;
-  const estimatedMarginPercent = calculateMarginPercent(
-    estimatedProfitCents,
-    estimatedRevenueCents,
+  const estimatedTotals = calculateTotals(
+    estimatedRevenueRows.map((r) => r.amount),
+    estimatedCostRows.map((c) => c.amount),
   );
+  const {
+    revenueCents: estimatedRevenueCents,
+    costCents: estimatedCostCents,
+    profitCents: estimatedProfitCents,
+    marginPercent: estimatedMarginPercent,
+  } = estimatedTotals;
 
   const successKey = SUCCESS_KEYS.find(
     (key) => searchParamsResolved[key] !== undefined,
@@ -259,13 +272,8 @@ export default async function ProjectDetailPage({
   // computed above — not a new calculation engine. Margin difference
   // is null (shown as "N/A") if either side is null, since a
   // percentage-point gap against an undefined margin is meaningless.
-  const revenueDiffCents = revenueCents - estimatedRevenueCents;
-  const costDiffCents = costCents - estimatedCostCents;
-  const profitDiffCents = profitCents - estimatedProfitCents;
-  const marginDiffPercent =
-    marginPercent !== null && estimatedMarginPercent !== null
-      ? marginPercent - estimatedMarginPercent
-      : null;
+  const { revenueDiffCents, costDiffCents, profitDiffCents, marginDiffPercent } =
+    compareActualToEstimate(actualTotals, estimatedTotals);
 
   // Cost Variance by Category: groups the same costRows/estimatedCostRows
   // already loaded above by the existing fixed category list — no new
@@ -273,20 +281,11 @@ export default async function ProjectDetailPage({
   // on either side sums to 0 via sumCents([]), the same safe behavior
   // already used everywhere else for empty lists (not invented data,
   // just an accurate zero).
-  const costVarianceByCategory = CATEGORIES.map((category) => {
-    const estimatedCategoryCents = sumCents(
-      estimatedCostRows.filter((c) => c.category === category).map((c) => c.amount),
-    );
-    const actualCategoryCents = sumCents(
-      costRows.filter((c) => c.category === category).map((c) => c.amount),
-    );
-    return {
-      category,
-      estimatedCategoryCents,
-      actualCategoryCents,
-      diffCategoryCents: actualCategoryCents - estimatedCategoryCents,
-    };
-  });
+  const costVarianceByCategory = calculateCostVarianceByCategory(
+    CATEGORIES,
+    costRows,
+    estimatedCostRows,
+  );
 
   // Projected Final Profit: "if the remaining estimate is applied to
   // what's actually happened so far, where would this land?" Once
@@ -294,17 +293,11 @@ export default async function ProjectDetailPage({
   // there's nothing left to project — Math.max(..., 0) clamps that to
   // zero so an already-realized amount is never added on top of
   // itself (no double counting).
-  const remainingEstimatedRevenueCents = Math.max(
-    estimatedRevenueCents - revenueCents,
-    0,
-  );
-  const remainingEstimatedCostCents = Math.max(
-    estimatedCostCents - costCents,
-    0,
-  );
-  const projectedFinalRevenueCents = revenueCents + remainingEstimatedRevenueCents;
-  const projectedFinalCostCents = costCents + remainingEstimatedCostCents;
-  const projectedFinalProfitCents = projectedFinalRevenueCents - projectedFinalCostCents;
+  const {
+    projectedFinalRevenueCents,
+    projectedFinalCostCents,
+    projectedFinalProfitCents,
+  } = calculateProjectedFinal(actualTotals, estimatedTotals);
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-8 sm:py-12">

@@ -187,6 +187,18 @@ Foundation only; no translation library. Files:
   exact English message to a key and falls back to the original text.
   The margin placeholder `"N/A"` comes from `lib/finance/money.ts` and is
   intentionally left as is.
+- **Financial calculations (Mini-Sprint 53):** `lib/finance/money.ts`
+  keeps the primitives (`toCents`, `sumCents`, `formatCents`,
+  `calculateMarginPercent`, `formatMarginPercent`, `profitToneClass`).
+  `lib/finance/summary.ts` is the single place for the aggregation built
+  on them: `calculateTotals` (revenue, costs, profit, margin),
+  `groupAmountsByProject`, `compareActualToEstimate` (Actual - Estimated),
+  `calculateCostVarianceByCategory` and `calculateProjectedFinal`. The
+  Projects list, the Project detail page and the Dashboard call these
+  instead of repeating the arithmetic; any future consumer (e.g. an
+  export) must use them too so numbers can never diverge from the screens.
+  Presentation-only math (e.g. chart bar heights on the Dashboard) stays
+  in the page.
 - **Data stays as stored:** statuses (`Active`/`Completed`/`Archived`),
   cost categories and other DB values are never translated or rewritten;
   future sprints translate only the displayed label.

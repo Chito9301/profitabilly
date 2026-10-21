@@ -6,12 +6,11 @@ import Button from "@/components/Button";
 import Card from "@/components/Card";
 import StatusBadge from "@/components/StatusBadge";
 import {
-  sumCents,
   formatCents,
-  calculateMarginPercent,
   formatMarginPercent,
   profitToneClass,
 } from "@/lib/finance/money";
+import { calculateTotals, groupAmountsByProject } from "@/lib/finance/summary";
 
 // Presentational only: receives values that were already computed and
 // formatted above (sumCents/formatCents/calculateMarginPercent/
@@ -264,30 +263,25 @@ export default async function DashboardPage() {
     (p: { status: string }) => p.status === "Archived",
   ).length;
 
-  const revenueCents = sumCents(
+  // Grand totals come from lib/finance/summary.ts (Mini-Sprint 53). The
+  // weighted overall margin is calculateMarginPercent(profit, revenue)
+  // over these totals — (TotalRevenue - TotalCosts) / TotalRevenue x 100,
+  // not an average of per-project percentages.
+  const { revenueCents, costCents, profitCents, marginPercent } = calculateTotals(
     (revenues ?? []).map((r: { amount: string }) => r.amount),
-  );
-  const costCents = sumCents(
     (costs ?? []).map((c: { amount: string }) => c.amount),
   );
-  const profitCents = revenueCents - costCents;
 
   // Same grouping-by-project_id pattern as the Projects list page
   // (app/dashboard/projects/page.tsx): a project with no rows in either
   // map simply gets sumCents([]) = 0, never an error or an invented
   // value.
-  const revenueAmountsByProject = new Map<string, string[]>();
-  for (const r of (revenues ?? []) as { project_id: string; amount: string }[]) {
-    const list = revenueAmountsByProject.get(r.project_id) ?? [];
-    list.push(r.amount);
-    revenueAmountsByProject.set(r.project_id, list);
-  }
-  const costAmountsByProject = new Map<string, string[]>();
-  for (const c of (costs ?? []) as { project_id: string; amount: string }[]) {
-    const list = costAmountsByProject.get(c.project_id) ?? [];
-    list.push(c.amount);
-    costAmountsByProject.set(c.project_id, list);
-  }
+  const revenueAmountsByProject = groupAmountsByProject(
+    (revenues ?? []) as { project_id: string; amount: string }[],
+  );
+  const costAmountsByProject = groupAmountsByProject(
+    (costs ?? []) as { project_id: string; amount: string }[],
+  );
 
   // Mini-Sprint 42: order the Project Profitability chart by recent
   // activity. `projects` has no `updated_at` (see supabase/migrations
@@ -306,26 +300,19 @@ export default async function DashboardPage() {
 
   const projectBars: ProjectBar[] = projectsByRecency.map(
     (p: { id: string; name: string; status: string }) => {
-      const projectRevenueCents = sumCents(
+      const projectTotals = calculateTotals(
         revenueAmountsByProject.get(p.id) ?? [],
+        costAmountsByProject.get(p.id) ?? [],
       );
-      const projectCostCents = sumCents(costAmountsByProject.get(p.id) ?? []);
       return {
         id: p.id,
         name: p.name,
-        revenueCents: projectRevenueCents,
-        costCents: projectCostCents,
-        profitCents: projectRevenueCents - projectCostCents,
+        revenueCents: projectTotals.revenueCents,
+        costCents: projectTotals.costCents,
+        profitCents: projectTotals.profitCents,
       };
     },
   );
-  // Weighted overall margin: calculateMarginPercent(profit, revenue) is
-  // the exact same function used per-project on the Projects list and
-  // detail page — called here with the grand totals instead of one
-  // project's totals, it naturally computes (TotalRevenue - TotalCosts)
-  // / TotalRevenue x 100, not an average of individual percentages.
-  const marginPercent = calculateMarginPercent(profitCents, revenueCents);
-
   return (
     <main className="mx-auto max-w-4xl px-6 py-8 sm:py-12">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

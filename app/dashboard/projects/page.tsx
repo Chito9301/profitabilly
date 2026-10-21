@@ -5,7 +5,8 @@ import Button from "@/components/Button";
 import StatusBadge from "@/components/StatusBadge";
 import DeleteProjectButton from "./DeleteProjectButton";
 import { getMessages } from "@/lib/i18n/server";
-import { sumCents, formatCents, calculateMarginPercent, formatMarginPercent, profitToneClass } from "@/lib/finance/money";
+import { formatCents, formatMarginPercent, profitToneClass } from "@/lib/finance/money";
+import { calculateTotals, groupAmountsByProject } from "@/lib/finance/summary";
 import type { Project } from "@/types/supabase";
 
 export default async function ProjectsPage({
@@ -78,29 +79,19 @@ export default async function ProjectsPage({
     .select("project_id, amount")
     .eq("user_id", user.id);
 
-  const revenueAmountsByProject = new Map<string, string[]>();
-  for (const r of revenues ?? []) {
-    const list = revenueAmountsByProject.get(r.project_id) ?? [];
-    list.push(r.amount);
-    revenueAmountsByProject.set(r.project_id, list);
-  }
-
-  const costAmountsByProject = new Map<string, string[]>();
-  for (const c of costs ?? []) {
-    const list = costAmountsByProject.get(c.project_id) ?? [];
-    list.push(c.amount);
-    costAmountsByProject.set(c.project_id, list);
-  }
+  // Grouping and totals live in lib/finance/summary.ts (Mini-Sprint 53);
+  // the logic is the same one that used to be written inline here.
+  const revenueAmountsByProject = groupAmountsByProject(revenues ?? []);
+  const costAmountsByProject = groupAmountsByProject(costs ?? []);
 
   // A project with no revenue/cost rows simply has no entry in either
   // map, so `.get(id) ?? []` below is an empty list — sumCents([]) is
   // 0, not an error, so it can never produce an incorrect total.
   function projectTotals(projectId: string) {
-    const revenueCents = sumCents(revenueAmountsByProject.get(projectId) ?? []);
-    const costCents = sumCents(costAmountsByProject.get(projectId) ?? []);
-    const profitCents = revenueCents - costCents;
-    const marginPercent = calculateMarginPercent(profitCents, revenueCents);
-    return { revenueCents, costCents, profitCents, marginPercent };
+    return calculateTotals(
+      revenueAmountsByProject.get(projectId) ?? [],
+      costAmountsByProject.get(projectId) ?? [],
+    );
   }
 
   const successKey = Object.keys(SUCCESS_MESSAGES).find(
