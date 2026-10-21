@@ -199,6 +199,23 @@ Foundation only; no translation library. Files:
   export) must use them too so numbers can never diverge from the screens.
   Presentation-only math (e.g. chart bar heights on the Dashboard) stays
   in the page.
+- **Excel export (Mini-Sprint 54):** `GET /dashboard/export/projects`
+  (`app/dashboard/export/projects/route.ts`, Node runtime, dynamic) builds
+  the workbook with `write-excel-file/node` (`writeExcelFile(sheetData,
+  options).toBuffer()`). It takes no input from the request: it verifies
+  the session with `supabase.auth.getUser()` (401 otherwise), uses the
+  server Supabase client (RLS) with the same user_id-filtered queries as
+  the Projects page, and computes totals with
+  `calculateTotals`/`groupAmountsByProject`. Response headers: xlsx MIME,
+  `attachment; filename="JobWorth-<Projects|Proyectos>-YYYY-MM-DD.xlsx"`,
+  `Cache-Control: private, no-store`, `X-Content-Type-Options: nosniff`.
+  User text is always written as explicit `String` cells (never
+  `Formula`). Money = cents/100 as numbers (`#,##0.00`), currency in its
+  own column; margin = fraction (`0.00%`), empty when revenue is 0; dates
+  are UTC calendar dates (`yyyy-mm-dd`). The button
+  (`components/ExportProjectsButton.tsx`) fetches the file, shows a
+  loading state, validates the response type and shows a translated error
+  on failure. Dictionary namespace: `exportProjects.*`.
 - **Data stays as stored:** statuses (`Active`/`Completed`/`Archived`),
   cost categories and other DB values are never translated or rewritten;
   future sprints translate only the displayed label.

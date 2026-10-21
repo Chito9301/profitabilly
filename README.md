@@ -59,6 +59,18 @@ construction, contractors, and other service businesses.
   heading, "Add Project" action in the header. Data queries and
   calculations are unchanged.
 
+- **Mini-Sprint 54** — Excel export of projects. New "Export to Excel" /
+  "Exportar a Excel" button on the Projects page downloads an `.xlsx`
+  (one row per project: project, customer, status, created, accepted,
+  currency, actual revenue, actual costs, actual profit, profit margin)
+  generated on the server by `app/dashboard/export/projects/route.ts`
+  with `write-excel-file` 4.1.1 (**new dependency, pinned**; run
+  `npm install` to fetch it and create the lockfile — the repo has no
+  lockfile). Totals come from `lib/finance/summary.ts`; empty cells mean
+  "no data" (no customer, not accepted yet, margin undefined when revenue
+  is 0). Headers, sheet name, file name and error messages follow the
+  active language. No PDF, no estimated columns yet.
+
 - **Mini-Sprint 53** — Financial calculations centralized. The totals,
   profit, margin, estimated-vs-actual differences, cost variance by
   category and projected final profit that were written inline in the

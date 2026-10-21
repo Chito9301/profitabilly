@@ -2,7 +2,7 @@
 // `Messages` is derived from it, and es.ts is typed with `Messages`, so
 // a missing or extra key in either file is a TypeScript error.
 // Translated so far: navigation (Mini-Sprint 47), public/auth pages (48),
-// Customers (49) and Projects (50-51). Other pages are translated in
+// Customers (49), Projects (50-51) and the Excel export (54). Other pages are translated in
 // later mini-sprints by adding keys here and in es.ts. Internal values
 // (statuses, categories) are never translated here — only the labels
 // shown to the user.
@@ -230,6 +230,25 @@ export const en = {
       estimatedCostSaveFailed: "Could not save the estimated cost. Please try again.",
       estimatedCostUpdateFailed: "Could not update the estimated cost. It may not exist or you may not have access to it.",
       estimatedCostDeleteFailed: "Could not delete the estimated cost. It may not exist or you may not have access to it.",
+    },
+  },
+  exportProjects: {
+    button: "Export to Excel",
+    exporting: "Exporting…",
+    error: "Could not export the projects. Please try again.",
+    sheetName: "Projects",
+    fileName: "JobWorth-Projects",
+    columns: {
+      project: "Project",
+      customer: "Customer",
+      status: "Status",
+      created: "Created",
+      accepted: "Accepted",
+      currency: "Currency",
+      revenue: "Actual revenue",
+      costs: "Actual costs",
+      profit: "Actual profit",
+      margin: "Profit margin",
     },
   },
   home: {
