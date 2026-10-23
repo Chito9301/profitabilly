@@ -228,6 +228,9 @@ export const es: Messages = {
   },
   exportProjects: {
     button: "Exportar a Excel",
+    menuLabel: "Exportar",
+    optionExcel: "Excel (.xlsx)",
+    optionPdf: "PDF (.pdf)",
     exporting: "Exportando…",
     error: "No se pudieron exportar los proyectos. Inténtalo de nuevo.",
     sheetName: "Proyectos",
@@ -243,6 +246,13 @@ export const es: Messages = {
       costs: "Costos reales",
       profit: "Ganancia real",
       margin: "Margen de ganancia",
+    },
+    pdf: {
+      reportTitle: "Informe de proyectos",
+      generatedOn: "Generado el",
+      empty: "No hay proyectos para mostrar.",
+      page: "Página",
+      pageOf: "de",
     },
   },
   home: {

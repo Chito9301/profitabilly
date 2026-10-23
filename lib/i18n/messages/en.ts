@@ -234,6 +234,9 @@ export const en = {
   },
   exportProjects: {
     button: "Export to Excel",
+    menuLabel: "Export",
+    optionExcel: "Excel (.xlsx)",
+    optionPdf: "PDF (.pdf)",
     exporting: "Exporting…",
     error: "Could not export the projects. Please try again.",
     sheetName: "Projects",
@@ -249,6 +252,13 @@ export const en = {
       costs: "Actual costs",
       profit: "Actual profit",
       margin: "Profit margin",
+    },
+    pdf: {
+      reportTitle: "Projects report",
+      generatedOn: "Generated on",
+      empty: "There are no projects to show.",
+      page: "Page",
+      pageOf: "of",
     },
   },
   home: {

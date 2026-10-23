@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import Button from "@/components/Button";
 import StatusBadge from "@/components/StatusBadge";
 import DeleteProjectButton from "./DeleteProjectButton";
-import ExportProjectsButton from "@/components/ExportProjectsButton";
+import ExportMenu from "@/components/ExportMenu";
 import { getMessages } from "@/lib/i18n/server";
 import { formatCents, formatMarginPercent, profitToneClass } from "@/lib/finance/money";
 import { calculateTotals, groupAmountsByProject } from "@/lib/finance/summary";
@@ -111,7 +111,7 @@ export default async function ProjectsPage({
       <div className="mb-8 mt-2 flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-2xl font-medium tracking-tight">{t.title}</h1>
         <div className="flex flex-wrap items-start gap-3">
-          <ExportProjectsButton />
+          <ExportMenu />
           <Button href="/dashboard/projects/new" variant="primary">
             {t.add}
           </Button>

@@ -59,6 +59,20 @@ construction, contractors, and other service businesses.
   heading, "Add Project" action in the header. Data queries and
   calculations are unchanged.
 
+- **Mini-Sprint 55** — PDF export and unified export menu. The
+  "Export to Excel" button becomes one "Export" / "Exportar" menu on the
+  Projects page with "Excel (.xlsx)" and "PDF (.pdf)". The PDF
+  (`app/dashboard/export/projects/pdf/route.ts`) has the same ten columns
+  and figures as the Excel file, in an A4 landscape table whose header
+  repeats on every page, and is generated on the server with `pdfmake`
+  **0.3.11** (**new dependency, pinned**; run `npm install` — there is still
+  no lockfile). Font: Carlito Regular/Bold (SIL OFL 1.1) bundled in
+  `assets/fonts/` with its license. The Excel route and the financial
+  formulas are unchanged. **Not yet verified:** the dependency could not be
+  installed where this sprint was written, so `npm run typecheck`,
+  `npm run build` and a real generated PDF must be checked locally (see the
+  Mini-Sprint 55 report).
+
 - **Mini-Sprint 54** — Excel export of projects. New "Export to Excel" /
   "Exportar a Excel" button on the Projects page downloads an `.xlsx`
   (one row per project: project, customer, status, created, accepted,

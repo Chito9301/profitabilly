@@ -212,10 +212,33 @@ Foundation only; no translation library. Files:
   User text is always written as explicit `String` cells (never
   `Formula`). Money = cents/100 as numbers (`#,##0.00`), currency in its
   own column; margin = fraction (`0.00%`), empty when revenue is 0; dates
-  are UTC calendar dates (`yyyy-mm-dd`). The button
-  (`components/ExportProjectsButton.tsx`) fetches the file, shows a
-  loading state, validates the response type and shows a translated error
-  on failure. Dictionary namespace: `exportProjects.*`.
+  are UTC calendar dates (`yyyy-mm-dd`). Dictionary namespace:
+  `exportProjects.*`.
+- **PDF export + unified menu (Mini-Sprint 55):** `GET
+  /dashboard/export/projects/pdf`
+  (`app/dashboard/export/projects/pdf/route.ts`, Node runtime, dynamic)
+  returns an `application/pdf` with the same ten columns and figures as
+  the Excel file. Same security model as the Excel route (session check
+  with `getUser()` -> 401, server client + RLS, explicit `user_id` filters,
+  nothing read from the request, generic errors, `Cache-Control: private,
+  no-store`, ASCII file name `JobWorth-<Projects|Proyectos>-YYYY-MM-DD.pdf`).
+  Data comes from `lib/export/projects-report.ts` (the same five queries as
+  the Excel route and the same `calculateTotals`/`groupAmountsByProject`;
+  the Excel route itself was NOT modified). The layout is a pure function,
+  `lib/export/projects-pdf-definition.ts` (A4 landscape, `headerRows: 1`
+  so the header repeats on every page, amounts with two decimals and
+  locale separators, margin with two decimals, empty cell when undefined,
+  a translated message row when there are no projects).
+  `lib/export/projects-pdf.ts` renders it with **pdfmake 0.3.11**
+  (`addFonts`, `createPdf(...).getBuffer()`), using the bundled Carlito
+  Regular/Bold fonts in `assets/fonts/` (SIL OFL 1.1, license text in
+  `assets/fonts/OFL.txt`). The single "Export" / "Exportar" menu is
+  `components/ExportMenu.tsx` (replaces `ExportProjectsButton.tsx`): menu
+  button pattern with Escape / outside click / arrow keys, one in-flight
+  request per format, loading text and a translated error. Fonts are read
+  from `process.cwd()/assets/fonts`; if the app is ever deployed to a
+  serverless target that does not trace that folder, it must be included
+  explicitly in the build configuration (not changed in this sprint).
 - **Data stays as stored:** statuses (`Active`/`Completed`/`Archived`),
   cost categories and other DB values are never translated or rewritten;
   future sprints translate only the displayed label.
